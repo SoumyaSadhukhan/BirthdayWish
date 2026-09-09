@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Piu": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:54506;http://localhost:54507"
+    }
+  }
+}
