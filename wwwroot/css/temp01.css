@@ -1,0 +1,155 @@
+:root {
+    --bg-dark: #0a0a0a;
+    --text-main: #f0f0f0;
+    --accent: #d4af37;
+    --disk-width: 400px;
+    --disk-height: 400px;
+    --edge-gap: 20px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Montserrat', sans-serif;
+    overflow: hidden; /* Prevent body scroll, rack will scroll */
+    height: 100vh;
+    width: 100vw;
+}
+
+/* Navigation */
+.temp-nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    z-index: 1000;
+}
+.back-btn { color: #fff; text-decoration: none; opacity: 0.7; transition: 0.3s; }
+.back-btn:hover { opacity: 1; color: var(--accent); }
+.nav-title { font-weight: 600; letter-spacing: 2px; }
+.nav-count { opacity: 0.5; }
+
+/* Ambient Background */
+.ambient-bg {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-size: cover;
+    background-position: center;
+    filter: blur(50px) brightness(0.2);
+    z-index: -1;
+    transition: background-image 0.5s ease-in-out;
+}
+
+/* The Rack Container */
+.rack-wrapper {
+    position: absolute;
+    top: 60px; /* Below nav */
+    bottom: 0;
+    left: 0;
+    right: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    align-items: center;
+    
+    /* Hide scrollbar for clean look */
+    scrollbar-width: none; 
+    -ms-overflow-style: none;
+}
+.rack-wrapper::-webkit-scrollbar { display: none; }
+
+.disk-rack {
+    display: flex;
+    align-items: center;
+    padding: 0 50vw; /* Center the first/last disk */
+    height: 100%;
+    /* Create a 3D perspective space */
+    perspective: 1500px;
+    transform-style: preserve-3d;
+}
+
+/* Individual Disks */
+.disk-container {
+    position: relative;
+    /* This defines the spacing between edges when they are rotated 85deg */
+    /* Since they are rotated, their apparent width is very small. We use margin for spacing. */
+    width: var(--edge-gap); 
+    height: var(--disk-height);
+    flex: 0 0 auto;
+    transform-style: preserve-3d;
+}
+
+.disk {
+    position: absolute;
+    top: 0;
+    /* Center it inside the tiny gap container */
+    left: calc( (var(--edge-gap) - var(--disk-width)) / 2 ); 
+    width: var(--disk-width);
+    height: var(--disk-height);
+    background: #222;
+    border-radius: 50%; /* Make it look like a CD/Record */
+    border: 2px solid #333;
+    box-shadow: 0 0 20px rgba(0,0,0,0.8), inset 0 0 50px rgba(0,0,0,0.5);
+    overflow: hidden;
+    
+    /* Rotate to show only the side edge */
+    /* Rotate 85 degrees so it's almost flat */
+    transform: rotateY(85deg) scale(0.9);
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.4s, z-index 0.4s;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.disk img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Dim the image while in the rack */
+    filter: brightness(0.4) grayscale(50%);
+    transition: filter 0.4s;
+}
+
+/* Central hole of the CD */
+.disk::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px; height: 40px;
+    background: var(--bg-dark);
+    border-radius: 50%;
+    border: 2px solid #111;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+}
+
+/* Hover State - Pull the disk out and face the camera */
+.disk-container:hover {
+    z-index: 100;
+}
+
+.disk-container:hover .disk {
+    /* Bring to front, face forward, scale up */
+    transform: rotateY(0deg) translateZ(150px) scale(1.2);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    z-index: 100;
+    border-color: var(--accent);
+}
+
+.disk-container:hover .disk img {
+    filter: brightness(1) grayscale(0%);
+}
+
+/* Adjacent Disks push away slightly when hovering */
+.disk-container:has(+ .disk-container:hover) .disk {
+    transform: rotateY(80deg) translateX(-20px) scale(0.9);
+}
+.disk-container:hover + .disk-container .disk {
+    transform: rotateY(80deg) translateX(20px) scale(0.9);
+}

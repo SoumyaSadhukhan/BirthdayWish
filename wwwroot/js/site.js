@@ -1,184 +1,70 @@
-// site.js - Main State Machine Controller
-
-const STATES = Object.freeze({
-    LOADING: "LOADING",
-    WELCOME: "WELCOME",
-    COUNTDOWN: "COUNTDOWN",
-    PARTY: "PARTY",
-    CAKE: "CAKE",
-    CELEBRATION: "CELEBRATION",
-    VOICE: "VOICE",
-    GIFT: "GIFT",
-    SURPRISES: "SURPRISES",
-    FINAL: "FINAL",
-    COMPLETE: "COMPLETE"
-});
+// site.js - Hybrid Scroll & State Controller
 
 class AppController {
     constructor() {
-        this.currentState = null;
         this.data = JSON.parse(document.getElementById('birthday-data').textContent);
         
-        // Modules will attach themselves here
+        // Modules
         this.modules = {};
+        this.scrollTriggers = [];
+        this.isAudioUnlocked = false;
 
         this.init();
     }
 
     init() {
-        console.log("Initializing Birthday App...");
+        console.log("Initializing Cinematic Birthday Experience...");
         
-        // Listen for module events
-        document.addEventListener("birthday:cake-complete", () => this.transitionTo(STATES.CELEBRATION));
-        document.addEventListener("birthday:voice-complete", () => this.transitionTo(STATES.GIFT));
-        document.addEventListener("birthday:gift-opened", () => this.transitionTo(STATES.SURPRISES));
-        document.addEventListener("birthday:final-reached", () => this.transitionTo(STATES.FINAL));
+        // Initial setup - hide scroll track
+        gsap.set('#surprises-track', { display: 'none', opacity: 0 });
+        gsap.set('.scene', { opacity: 0 }); // Hide all scenes initially
+        
+        // Audio Toggle
+        document.getElementById('audio-toggle').addEventListener('click', (e) => {
+            this.toggleAudio();
+        });
 
-        // Start loading
-        this.transitionTo(STATES.LOADING);
-
-        // Simulate asset loading (audio, images are lazy/preload handled by modules)
+        // 1. Intro & Countdown
+        gsap.to('#scene-intro', { opacity: 1, duration: 1 });
+        
         setTimeout(() => {
             if (this.data.config.countdown.enabled) {
                 const bdDate = new Date(this.data.config.birthdayDateIso);
                 if (new Date() < bdDate) {
-                    this.transitionTo(STATES.COUNTDOWN);
+                    this.showCountdown();
                 } else {
-                    this.transitionTo(STATES.WELCOME);
+                    this.transitionToIntroComplete();
                 }
             } else {
-                this.transitionTo(STATES.WELCOME);
+                this.transitionToIntroComplete();
             }
-        }, 1500); // Minimum loading screen time
+        }, 1500);
     }
 
-    registerModule(name, moduleObj) {
-        this.modules[name] = moduleObj;
-    }
-
-    hideAllStates() {
-        document.querySelectorAll('.state-section').forEach(el => {
-            el.classList.remove('active');
-            gsap.set(el, { opacity: 0, pointerEvents: 'none' });
-        });
-    }
-
-    showStateElement(id) {
-        const el = document.getElementById(id);
-        if (el) {
-            el.classList.add('active');
-            gsap.to(el, { opacity: 1, duration: 1, pointerEvents: 'auto' });
+    unlockAudioContext() {
+        if (!this.isAudioUnlocked && window.SoundManager) {
+            window.SoundManager.unlockAudio();
+            this.isAudioUnlocked = true;
         }
     }
 
-    transitionTo(state) {
-        console.log(`Transitioning to ${state}`);
-        this.currentState = state;
-
-        if(state !== STATES.CAKE && state !== STATES.CELEBRATION && state !== STATES.VOICE && state !== STATES.GIFT && state !== STATES.SURPRISES) {
-            this.hideAllStates();
-        }
-
-        switch (state) {
-            case STATES.LOADING:
-                this.showStateElement('state-loading');
-                break;
-            case STATES.WELCOME:
-                this.showStateElement('state-welcome');
-                document.querySelector('.welcome-title').innerText = this.data.config.welcome.title;
-                document.querySelector('.welcome-message').innerText = this.data.config.welcome.message;
-                
-                document.getElementById('btn-enter').onclick = () => {
-                    // First interaction unlocks audio
-                    if (window.SoundManager) window.SoundManager.unlockAudio();
-                    this.transitionTo(STATES.PARTY);
-                };
-                break;
-            case STATES.COUNTDOWN:
-                this.showStateElement('state-countdown');
-                document.querySelector('.countdown-title').innerText = this.data.config.countdown.beforeTitle;
-                this.startCountdown();
-                break;
-            case STATES.PARTY:
-                this.showStateElement('state-party');
-                if (window.BirthdayRoom) window.BirthdayRoom.startAmbient();
-                if (window.SoundManager) window.SoundManager.playMusic();
-                
-                // Proceed to cake
-                setTimeout(() => this.transitionTo(STATES.CAKE), 2000);
-                break;
-            case STATES.CAKE:
-                this.updateProgress('cake');
-                document.getElementById('cake-container').classList.remove('hidden');
-                document.getElementById('cake-title').innerText = this.data.config.cake.title;
-                gsap.fromTo('#cake-container', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 1, ease: 'back.out(1.7)' });
-                if (window.CakeManager) window.CakeManager.init();
-                break;
-            case STATES.CELEBRATION:
-                document.getElementById('cake-container').classList.add('hidden');
-                document.getElementById('celebration-text').classList.remove('hidden');
-                document.getElementById('celeb-name').innerText = this.data.config.name;
-                gsap.fromTo('#celebration-text', { scale: 0.5, opacity: 0 }, { scale: 1, opacity: 1, duration: 1, ease: 'elastic.out(1, 0.3)' });
-                if (window.ParticleManager) window.ParticleManager.confetti();
-                
-                setTimeout(() => {
-                    gsap.to('#celebration-text', { scale: 1.5, opacity: 0, duration: 1, onComplete: () => {
-                        document.getElementById('celebration-text').classList.add('hidden');
-                        if (this.data.config.birthdayVoice.enabled && this.data.audio.birthdayVoice.length > 0) {
-                            this.transitionTo(STATES.VOICE);
-                        } else {
-                            this.transitionTo(STATES.GIFT);
-                        }
-                    }});
-                }, 4000);
-                break;
-            case STATES.VOICE:
-                document.getElementById('voice-container').classList.remove('hidden');
-                gsap.fromTo('#voice-container', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 1 });
-                
-                document.getElementById('btn-play-voice').onclick = () => {
-                    if (window.SoundManager) window.SoundManager.playVoice(this.data.audio.birthdayVoice[0]);
-                    document.getElementById('btn-play-voice').classList.add('hidden');
-                    document.getElementById('voice-visualizer').classList.remove('hidden');
-                    // visualizer animation
-                    gsap.to('.bar', { height: '100%', duration: 0.5, stagger: 0.1, yoyo: true, repeat: -1 });
-                };
-                break;
-            case STATES.GIFT:
-                this.updateProgress('gift');
-                document.getElementById('voice-container').classList.add('hidden');
-                document.getElementById('gift-container').classList.remove('hidden');
-                document.getElementById('gift-title').innerText = this.data.config.gifts.title;
-                gsap.fromTo('#gift-container', { y: 100, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: 'back.out(1.5)' });
-                if (window.GiftsManager) window.GiftsManager.init();
-                break;
-            case STATES.SURPRISES:
-                this.updateProgress('surprises');
-                document.getElementById('gift-container').classList.add('hidden');
-                document.getElementById('surprises-grid').classList.remove('hidden');
-                if (window.GiftsManager) window.GiftsManager.populateSurprises();
-                break;
-            case STATES.FINAL:
-                this.updateProgress('final');
-                this.hideAllStates();
-                this.showStateElement('state-final');
-                document.getElementById('final-title').innerText = this.data.config.finalMessage.title;
-                document.getElementById('final-message').innerText = this.data.config.finalMessage.message;
-                
-                if (this.data.images.final && this.data.images.final.length > 0) {
-                    const img = document.createElement('img');
-                    img.src = this.data.images.final[0];
-                    document.getElementById('final-image-wrapper').appendChild(img);
-                }
-
-                gsap.fromTo('.final-content', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 2, ease: 'power2.out' });
-                
-                document.getElementById('btn-replay').onclick = () => this.replay();
-                break;
+    toggleAudio() {
+        if (!window.SoundManager) return;
+        const icon = document.getElementById('audio-icon');
+        if (window.SoundManager.isMuted) {
+            window.SoundManager.unmute();
+            icon.innerText = '🔊';
+        } else {
+            window.SoundManager.mute();
+            icon.innerText = '🔇';
         }
     }
 
-    startCountdown() {
+    showCountdown() {
+        document.getElementById('loading-ui').classList.add('hidden');
+        document.getElementById('countdown-ui').classList.remove('hidden');
+        document.querySelector('.countdown-title').innerText = this.data.config.countdown.title || "Something special is coming...";
+        
         const bdDate = new Date(this.data.config.birthdayDateIso).getTime();
         
         const updateTimer = () => {
@@ -187,9 +73,7 @@ class AppController {
 
             if (distance < 0) {
                 clearInterval(this.interval);
-                document.querySelector('.countdown-title').innerText = this.data.config.countdown.birthdayTitle;
-                document.getElementById('btn-skip-countdown').classList.remove('hidden');
-                document.getElementById('btn-skip-countdown').onclick = () => this.transitionTo(STATES.WELCOME);
+                this.transitionToIntroComplete();
                 if (window.ParticleManager) window.ParticleManager.confetti();
                 return;
             }
@@ -202,28 +86,173 @@ class AppController {
 
         updateTimer();
         this.interval = setInterval(updateTimer, 1000);
-        
-        // Fallback skip button
-        setTimeout(() => {
-            document.getElementById('btn-skip-countdown').classList.remove('hidden');
-            document.getElementById('btn-skip-countdown').onclick = () => this.transitionTo(STATES.WELCOME);
-        }, 5000);
     }
 
-    updateProgress(stage) {
-        document.querySelectorAll('.prog-item').forEach(el => {
-            if (el.dataset.stage === stage) {
-                el.classList.add('active');
+    transitionToIntroComplete() {
+        const tl = gsap.timeline();
+        tl.to('#scene-intro', { opacity: 0, duration: 1, onComplete: () => {
+            document.getElementById('scene-intro').style.display = 'none';
+        }});
+        
+        // Show Welcome
+        const welcomeScene = document.getElementById('scene-welcome');
+        gsap.to(welcomeScene, { opacity: 1, duration: 1, delay: 1 });
+        
+        document.querySelector('.welcome-title').innerText = this.data.config.welcome.title;
+        document.querySelector('.welcome-message').innerText = this.data.config.welcome.message;
+        
+        document.getElementById('btn-enter').onclick = () => {
+            this.unlockAudioContext();
+            if (window.SoundManager) window.SoundManager.playMusic();
+            if (window.BirthdayRoom) window.BirthdayRoom.startAmbient();
+            
+            // Transition to Gift Box
+            gsap.to(welcomeScene, { opacity: 0, y: -50, duration: 1, onComplete: () => {
+                welcomeScene.style.display = 'none';
+                this.startCinematicScroll();
+            }});
+        };
+    }
+
+    startCinematicScroll() {
+        console.log("Starting Cinematic Scroll");
+        
+        // Unlock scroll on body
+        document.body.style.overflowY = 'auto';
+        document.body.style.position = 'relative';
+
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Fade in Gift Scene
+        gsap.to('#scene-gift', { opacity: 1, duration: 1 });
+        if (window.GiftsManager) window.GiftsManager.init();
+
+        // Pin the gift scene until it is opened
+        ScrollTrigger.create({
+            trigger: "#scene-gift",
+            start: "top top",
+            end: "+=100%", // Virtual scroll space
+            pin: true,
+            id: "gift-pin",
+            onLeave: () => {
+                // If they scroll past without opening, force open
+                if (window.GiftsManager && !window.GiftsManager.isOpened) {
+                    window.GiftsManager.openGift();
+                }
             }
+        });
+
+        // Listen for gift opened to show surprises track
+        document.addEventListener("birthday:gift-opened", () => {
+            gsap.set('#surprises-track', { display: 'block' });
+            gsap.to('#surprises-track', { opacity: 1, duration: 1 });
+            
+            // Allow scrolling to continue normally
+            if(window.GiftsManager) window.GiftsManager.initScrollingSurprises();
+            
+            // Cleanup: remove gift pin so we can scroll smoothly
+            ScrollTrigger.getById("gift-pin").kill();
+            gsap.set('#scene-gift', { clearProps: "pin" });
+        }, { once: true });
+
+
+        // Setup Cake Scene Pin
+        document.addEventListener("birthday:cake-reached", () => {
+            gsap.to('#scene-cake', { opacity: 1, duration: 1 });
+            if (window.CakeManager) window.CakeManager.init();
+        }, { once: true });
+
+        ScrollTrigger.create({
+            trigger: "#scene-cake",
+            start: "top top",
+            end: "+=2000", // Needs a lot of space to prevent scrolling while cutting
+            pin: true,
+            id: "cake-pin"
+        });
+
+        document.addEventListener("birthday:cake-complete", () => {
+            // Unpin cake to allow scrolling to final sections
+            ScrollTrigger.getById("cake-pin").kill();
+            gsap.set('#scene-cake', { clearProps: "pin" });
+            
+            // Reveal Voice/Final
+            gsap.set('#scene-voice', { display: 'flex', opacity: 1 });
+            
+            if (this.data.config.birthdayVoice.enabled && this.data.audio.birthdayVoice.length > 0) {
+                document.getElementById('voice-container').classList.remove('hidden');
+                gsap.fromTo('#voice-container', { y: 50, opacity: 0 }, { y: 0, opacity: 1, duration: 1 });
+                
+                document.getElementById('btn-play-voice').onclick = () => {
+                    if (window.SoundManager) window.SoundManager.playVoice(this.data.audio.birthdayVoice[0]);
+                    document.getElementById('btn-play-voice').classList.add('hidden');
+                    document.getElementById('voice-visualizer').classList.remove('hidden');
+                    gsap.to('.bar', { height: '100%', duration: 0.5, stagger: 0.1, yoyo: true, repeat: -1 });
+                    
+                    document.getElementById('btn-continue-final').classList.remove('hidden');
+                };
+
+                document.getElementById('btn-continue-final').onclick = () => {
+                    this.showFinalDestination();
+                };
+            } else {
+                this.showFinalDestination();
+            }
+            
+        }, { once: true });
+        
+        // Scroll Lifecycle Cleanup
+        this.setupScrollLifecycle();
+    }
+
+    setupScrollLifecycle() {
+        // Automatically pause animations for scenes not in viewport to save mobile battery
+        const scenes = document.querySelectorAll('.scene');
+        scenes.forEach(scene => {
+            ScrollTrigger.create({
+                trigger: scene,
+                start: "top bottom", // enters from bottom
+                end: "bottom top",   // leaves from top
+                onEnter: () => {
+                    scene.classList.add('in-view');
+                    // Dispatch event for local managers to start drawing
+                    document.dispatchEvent(new CustomEvent(`scene:enter:${scene.id}`));
+                },
+                onLeave: () => {
+                    scene.classList.remove('in-view');
+                    document.dispatchEvent(new CustomEvent(`scene:leave:${scene.id}`));
+                },
+                onEnterBack: () => {
+                    scene.classList.add('in-view');
+                    document.dispatchEvent(new CustomEvent(`scene:enter:${scene.id}`));
+                },
+                onLeaveBack: () => {
+                    scene.classList.remove('in-view');
+                    document.dispatchEvent(new CustomEvent(`scene:leave:${scene.id}`));
+                }
+            });
         });
     }
 
-    replay() {
-        location.reload(); // Cleanest way to reset everything for now
+    showFinalDestination() {
+        gsap.to(window, { duration: 1, scrollTo: "#scene-final", ease: "power2.inOut" });
+        gsap.to('#scene-final', { opacity: 1, duration: 1 });
+
+        document.getElementById('final-title').innerText = this.data.config.finalMessage.title;
+        document.getElementById('final-message').innerText = this.data.config.finalMessage.message;
+        
+        if (this.data.images.final && this.data.images.final.length > 0) {
+            const img = document.createElement('img');
+            img.src = this.data.images.final[0];
+            img.loading = "lazy";
+            document.getElementById('final-image-wrapper').appendChild(img);
+        }
+
+        gsap.fromTo('.final-content', { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: 2, ease: 'power2.out', delay: 0.5 });
+        
+        document.getElementById('btn-replay').onclick = () => location.reload();
     }
 }
 
-// Initialize on DOM Load
 document.addEventListener("DOMContentLoaded", () => {
     window.App = new AppController();
 });

@@ -1,0 +1,118 @@
+@page
+@model Piu.Pages.GalleryModel
+@{
+    Layout = null;
+    ViewData["Title"] = "Cinematic Gallery";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/gallery.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600&family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Minimal UI Navigation Overlay -->
+    <nav class="gallery-nav">
+        <a href="/" class="nav-back">← Back</a>
+        <div class="nav-sections">
+            <a href="#s1-hero" class="nav-link">01</a>
+            <a href="#s2-filmstrip" class="nav-link">02</a>
+            <a href="#s3-stacked" class="nav-link">03</a>
+            <a href="#s4-editorial" class="nav-link">04</a>
+            <a href="#s5-journey" class="nav-link">05</a>
+            <a href="#s6-photowall" class="nav-link">06</a>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="scroll-progress"></div>
+        </div>
+    </nav>
+
+    <main id="gallery-container">
+        
+        <!-- SECTION 1: Cinematic Hero -->
+        <section id="s1-hero" class="gallery-section hero-section">
+            <div class="hero-image-wrapper">
+                <img class="hero-img" data-hero-src="" alt="Hero Image" />
+            </div>
+            <div class="hero-text-overlay">
+                <h1 class="cinematic-title">A Journey Together</h1>
+                <p class="cinematic-subtitle">Scroll to experience the moments</p>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Horizontal Filmstrip -->
+        <section id="s2-filmstrip" class="gallery-section filmstrip-section">
+            <div class="filmstrip-pin">
+                <h2 class="section-heading text-center mt-4">The Reel of Time</h2>
+                <div class="filmstrip-track" id="filmstrip-track">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: Stacked Cards -->
+        <section id="s3-stacked" class="gallery-section stacked-section">
+            <div class="stacked-container">
+                <h2 class="section-heading">Moments Unfolding</h2>
+                <div class="cards-deck" id="cards-deck">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: Editorial Masonry -->
+        <section id="s4-editorial" class="gallery-section editorial-section">
+            <h2 class="section-heading text-center mb-5">Editorial Collection</h2>
+            <div class="masonry-grid" id="masonry-grid">
+                <!-- Populated via JS -->
+            </div>
+        </section>
+
+        <!-- SECTION 5: Fullscreen Photo Journey -->
+        <section id="s5-journey" class="gallery-section journey-section">
+            <div class="journey-pin">
+                <div class="journey-wrapper" id="journey-wrapper">
+                    <!-- Images overlay and crossfade here -->
+                </div>
+                <div class="journey-caption" id="journey-caption">Captivating Memories</div>
+            </div>
+        </section>
+
+        <!-- SECTION 6: Virtualized Photo Wall -->
+        <section id="s6-photowall" class="gallery-section photowall-section">
+            <h2 class="section-heading text-center mb-4">The Complete Collection</h2>
+            <div class="wall-virtualizer" id="wall-container">
+                <div class="wall-grid" id="wall-grid">
+                    <!-- Virtualized blocks populated via JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FULLSCREEN LIGHTBOX VIEWER -->
+    <div id="lightbox-viewer" class="lightbox hidden" role="dialog" aria-modal="true">
+        <div class="lightbox-toolbar">
+            <span class="lightbox-counter" id="lb-counter">0 / 0</span>
+            <div class="lightbox-actions">
+                <a id="lb-download" class="lb-btn" download title="Download (D)"><svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></a>
+                <button id="lb-close" class="lb-btn" title="Close (ESC)">×</button>
+            </div>
+        </div>
+        <button id="lb-prev" class="lb-nav-btn left-btn">‹</button>
+        <div class="lightbox-content">
+            <img id="lb-img" src="" alt="Fullscreen Image" />
+        </div>
+        <button id="lb-next" class="lb-nav-btn right-btn">›</button>
+        <div class="lightbox-filename" id="lb-filename">filename.jpg</div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="~/js/gallery/gallery-main.js" asp-append-version="true"></script>
+</body>
+</html>

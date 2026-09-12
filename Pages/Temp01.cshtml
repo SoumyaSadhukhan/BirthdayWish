@@ -1,0 +1,35 @@
+@page
+@model Piu.Pages.Temp01Model
+@{
+    Layout = null;
+    ViewData["Title"] = "3D Disk Rack - Temp 01";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/temp01.css" asp-append-version="true" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="temp-nav">
+        <a href="/" class="back-btn">← Back to Main</a>
+        <span class="nav-title">Experimental 3D Disk Rack</span>
+        <span id="img-count" class="nav-count">Loading...</span>
+    </nav>
+
+    <div class="rack-wrapper">
+        <!-- Horizontal scrollable container -->
+        <div class="disk-rack" id="disk-rack">
+            <!-- Disks injected via JS -->
+        </div>
+    </div>
+
+    <!-- Background blurred image for active disk -->
+    <div class="ambient-bg" id="ambient-bg"></div>
+
+    <script src="~/js/temp01.js" asp-append-version="true"></script>
+</body>
+</html>
