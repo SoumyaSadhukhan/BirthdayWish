@@ -3,7 +3,7 @@
 class BirthdayRoom {
     constructor() {
         this.bg = document.getElementById('party-bg');
-        this.balloonsContainer = document.getElementById('balloons-container');
+        this.balloonsContainer = document.getElementById('balloons-container') || document.getElementById('app-container');
         this.data = JSON.parse(document.getElementById('birthday-data').textContent);
     }
 
