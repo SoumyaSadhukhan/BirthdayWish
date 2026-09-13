@@ -1,255 +1,85 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Happy Birthday";
+    ViewData["Title"] = "Waiting for the Moment";
 }
 
-<script id="birthday-data" type="application/json">
-@Html.Raw(Model.ClientConfigJson)
-</script>
-
-<!-- Global Controls -->
-<button id="audio-toggle" class="global-btn" aria-label="Toggle audio">
-    <span class="icon" id="audio-icon">🔈</span>
-</button>
-
-<div id="app-container">
-    
-    <!-- Ambient Background (Continuous) -->
-    <div id="party-bg"></div>
-    <div id="party-particles"></div>
-
-    <div id="cinematic-track">
-
-        <!-- Scene 1: Loading & Countdown -->
-        <section class="scene" id="scene-intro">
-            <div class="loading-content text-center" id="loading-ui">
-                <div class="loading-balloon">🎈</div>
-                <h2 id="intro-status">Preparing something special...</h2>
-                <div class="progress-bar"><div class="progress-fill"></div></div>
+<div class="fullscreen-center" id="countdown-scene">
+    <div class="glass-panel" style="padding: 3rem 4rem;">
+        <h2 class="mb-4">Something special is coming...</h2>
+        
+        <div id="countdown-timer" class="d-flex justify-content-center gap-4 mt-4" style="font-size: 2.5rem; font-weight: 800; text-shadow: 0 0 20px rgba(236,72,153,0.5);">
+            <div class="time-block d-flex flex-column align-items-center">
+                <span id="days">00</span>
+                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">Days</span>
             </div>
-            <div class="countdown-content text-center hidden" id="countdown-ui">
-                <h2 class="countdown-title"></h2>
-                <div id="countdown-timer" class="countdown-timer">
-                    <div class="time-block">
-                        <span class="time-value" id="cd-days">00</span>
-                        <span class="time-label">Days</span>
-                    </div>
-                    <div class="time-block">
-                        <span class="time-value" id="cd-hours">00</span>
-                        <span class="time-label">Hours</span>
-                    </div>
-                    <div class="time-block">
-                        <span class="time-value" id="cd-minutes">00</span>
-                        <span class="time-label">Minutes</span>
-                    </div>
-                    <div class="time-block">
-                        <span class="time-value" id="cd-seconds">00</span>
-                        <span class="time-label">Seconds</span>
-                    </div>
-                </div>
+            <div class="time-block d-flex flex-column align-items-center">
+                <span>:</span>
+                <span>&nbsp;</span>
             </div>
-        </section>
-
-        <!-- Scene 2: Welcome -->
-        <section class="scene" id="scene-welcome">
-            <div class="welcome-content text-center">
-                <h1 class="welcome-title"></h1>
-                <p class="welcome-message"></p>
-                <button id="btn-enter" class="primary-btn mt-4 pulse-glow">Begin Your Birthday</button>
+            <div class="time-block d-flex flex-column align-items-center">
+                <span id="hours">00</span>
+                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">Hours</span>
             </div>
-        </section>
-
-        <!-- Scene 3: The Gift Box (Pinned Interactive) -->
-        <section class="scene interactive-scene" id="scene-gift">
-            <div class="interactive-object text-center">
-                <h2 class="stage-title" id="gift-title">A little surprise for you...</h2>
-                <p class="stage-subtitle">Tap to open</p>
-                <div class="gift-visual" id="the-gift">
-                    <div class="gift-box"></div>
-                    <div class="gift-lid"></div>
-                    <div class="gift-ribbon-v"></div>
-                    <div class="gift-ribbon-h"></div>
-                    <div class="gift-bow"></div>
-                </div>
+            <div class="time-block d-flex flex-column align-items-center">
+                <span>:</span>
+                <span>&nbsp;</span>
             </div>
-        </section>
-
-        <!-- Free Flowing Surprises Track -->
-        <div id="surprises-track" class="hidden">
-            
-            <!-- Roses -->
-            <section class="scene scroll-surprise" id="scene-roses">
-                <div class="anim-container text-center">
-                    <h2 class="elegant-title mb-4">Because you deserve the finest...</h2>
-                    <div id="roses-canvas"></div>
-                </div>
-            </section>
-            
-            <!-- Chocolates (New) -->
-            <section class="scene scroll-surprise" id="scene-chocolates">
-                <div class="anim-container text-center">
-                    <h2 class="elegant-title mb-4">Something sweet...</h2>
-                    <div id="chocolate-box" class="chocolate-box-container">
-                        <div class="choc-lid"></div>
-                        <div class="choc-base">
-                            <div class="choc-piece" style="--i:1;"></div>
-                            <div class="choc-piece" style="--i:2;"></div>
-                            <div class="choc-piece" style="--i:3;"></div>
-                            <div class="choc-piece" style="--i:4;"></div>
-                        </div>
-                    </div>
-                    <p class="stage-subtitle mt-4">Tap to open</p>
-                </div>
-            </section>
-
-            <!-- Balloons (New) -->
-            <section class="scene scroll-surprise" id="scene-balloons">
-                <div class="anim-container text-center">
-                    <h2 class="elegant-title mb-4" style="position:relative; z-index:10; color:#fff; text-shadow:0 0 20px #000;">And a little joy...</h2>
-                    <div id="balloons-canvas"></div>
-                </div>
-            </section>
-
-            <!-- Teddy Hug -->
-            <section class="scene scroll-surprise" id="scene-teddy">
-                <div class="anim-container teddy-anim-container text-center">
-                    <h2 class="elegant-title mb-4">A virtual hug for you...</h2>
-                    <svg class="teddy-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <radialGradient id="bear-fur" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stop-color="#b8865a"/>
-                                <stop offset="100%" stop-color="#8a5a33"/>
-                            </radialGradient>
-                            <radialGradient id="bear-snout" cx="50%" cy="50%" r="50%">
-                                <stop offset="0%" stop-color="#e6cca3"/>
-                                <stop offset="100%" stop-color="#c9a577"/>
-                            </radialGradient>
-                        </defs>
-                        <circle cx="50" cy="50" r="25" fill="url(#bear-fur)"/>
-                        <circle cx="50" cy="50" r="15" fill="url(#bear-snout)"/>
-                        <circle cx="150" cy="50" r="25" fill="url(#bear-fur)"/>
-                        <circle cx="150" cy="50" r="15" fill="url(#bear-snout)"/>
-                        <circle cx="100" cy="100" r="70" fill="url(#bear-fur)" filter="url(#drop-shadow)"/>
-                        <ellipse cx="100" cy="120" rx="35" ry="25" fill="url(#bear-snout)"/>
-                        <ellipse cx="100" cy="110" rx="10" ry="8" fill="#3b2011"/>
-                        <path d="M 100 118 L 100 130 Q 100 135 90 135 M 100 130 Q 100 135 110 135" stroke="#3b2011" stroke-width="3" fill="none"/>
-                        <circle cx="70" cy="85" r="7" fill="#111"/>
-                        <circle cx="68" cy="83" r="2" fill="#fff"/>
-                        <circle cx="130" cy="85" r="7" fill="#111"/>
-                        <circle cx="128" cy="83" r="2" fill="#fff"/>
-                        <g id="teddy-left-paw">
-                            <ellipse cx="30" cy="150" rx="25" ry="40" fill="url(#bear-fur)" transform="rotate(-30 30 150)"/>
-                            <ellipse cx="30" cy="150" rx="15" ry="20" fill="url(#bear-snout)" transform="rotate(-30 30 150)"/>
-                        </g>
-                        <g id="teddy-right-paw">
-                            <ellipse cx="170" cy="150" rx="25" ry="40" fill="url(#bear-fur)" transform="rotate(30 170 150)"/>
-                            <ellipse cx="170" cy="150" rx="15" ry="20" fill="url(#bear-snout)" transform="rotate(30 170 150)"/>
-                        </g>
-                    </svg>
-                </div>
-            </section>
-
-            <!-- Letter -->
-            <section class="scene scroll-surprise" id="scene-letter">
-                <div class="anim-container letter-anim-container">
-                    <svg class="envelope-svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-                        <defs>
-                            <linearGradient id="env-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stop-color="#f5e6d3" />
-                                <stop offset="100%" stop-color="#d4bfa6" />
-                            </linearGradient>
-                            <filter id="drop-shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                <feDropShadow dx="0" dy="10" stdDeviation="15" flood-color="#000" flood-opacity="0.5"/>
-                            </filter>
-                        </defs>
-                        <rect x="20" y="50" width="360" height="230" rx="10" fill="url(#env-grad)" filter="url(#drop-shadow)" />
-                        <g id="the-letter-paper" transform="translate(40, 60)">
-                            <rect width="320" height="400" rx="5" fill="#fffdfa" filter="url(#drop-shadow)" />
-                            <text x="30" y="50" font-family="'Cormorant Garamond', serif" font-size="20" fill="#2b2b2b" id="svg-letter-title">My Dearest,</text>
-                            <foreignObject x="30" y="80" width="260" height="300">
-                                <div xmlns="http://www.w3.org/1999/xhtml" id="html-letter-body" style="font-family:'Cormorant Garamond', serif; font-size:16px; color:#2b2b2b; line-height:1.6;"></div>
-                            </foreignObject>
-                        </g>
-                        <path d="M 20 280 L 200 160 L 380 280 Z" fill="#e8d6c1" />
-                        <path d="M 20 50 L 200 160 L 20 280 Z" fill="#ebdacc" />
-                        <path d="M 380 50 L 200 160 L 380 280 Z" fill="#ebdacc" />
-                        <path id="envelope-flap" d="M 20 50 L 200 180 L 380 50 Z" fill="#f5e6d3" style="transform-origin: center 50px;" filter="url(#drop-shadow)" />
-                        <circle id="wax-seal" cx="200" cy="170" r="25" fill="#8b0000" filter="url(#drop-shadow)"/>
-                        <circle id="wax-seal-inner" cx="200" cy="170" r="20" fill="none" stroke="#5a0000" stroke-width="2"/>
-                    </svg>
-                </div>
-            </section>
-
-            <!-- Gallery Entrance -->
-            <section class="scene scroll-surprise" id="scene-gallery">
-                <div class="anim-container text-center" style="flex-direction:column;">
-                    <h2 class="elegant-title mb-5">Our Memories</h2>
-                    <p class="mb-4" style="font-family:'Cormorant Garamond', serif; font-size:1.5rem; color:#fff;">A few of my favorite moments...</p>
-                    <a href="/Gallery" class="primary-btn pulse-glow" style="text-decoration:none;">View Gallery</a>
-                </div>
-            </section>
-
+            <div class="time-block d-flex flex-column align-items-center">
+                <span id="minutes">00</span>
+                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">Minutes</span>
+            </div>
+            <div class="time-block d-flex flex-column align-items-center">
+                <span>:</span>
+                <span>&nbsp;</span>
+            </div>
+            <div class="time-block d-flex flex-column align-items-center">
+                <span id="seconds">00</span>
+                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">Seconds</span>
+            </div>
         </div>
 
-        <!-- Scene 4: The Cake (Pinned Interactive) -->
-        <section class="scene interactive-scene" id="scene-cake">
-            <div id="cake-container" class="interactive-object">
-                <h2 class="stage-title" id="cake-title"></h2>
-                <div class="cake-visual">
-                    <div class="cake-layer bottom"></div>
-                    <div class="cake-layer middle"></div>
-                    <div class="cake-layer top">
-                        <div class="candles" id="candles-container"></div>
-                    </div>
-                    <!-- Swipe trail canvas -->
-                    <div id="swipe-trail-container"></div>
-                    <div id="cake-cut-line"></div>
-                </div>
-                <div class="cake-instructions" id="cake-instructions-text">Tap the candles to blow them out 💨</div>
-            </div>
-            
-            <!-- CELEBRATION TEXT -->
-            <div id="celebration-text" class="hidden text-center" style="position:absolute; width:100%; top:50%; left:50%; transform:translate(-50%, -50%); z-index:100;">
-                <h1 class="huge-text">HAPPY BIRTHDAY <br/> <span id="celeb-name"></span>!!!</h1>
-            </div>
-        </section>
-
-        <!-- Scene 5: Voice / Final Message -->
-        <section class="scene" id="scene-voice">
-            <div id="voice-container" class="interactive-object hidden text-center">
-                <div class="voice-icon" style="font-size:3rem; margin-bottom:1rem;">🎙️</div>
-                <h2 class="stage-title">Listen closely...</h2>
-                <button id="btn-play-voice" class="primary-btn mt-4 pulse-glow">▶ Play My Message</button>
-                <div id="voice-visualizer" class="hidden">
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                </div>
-                <button id="btn-continue-final" class="secondary-btn mt-5 hidden">Continue ❤️</button>
-            </div>
-        </section>
-
-        <!-- Scene 6: Final Destination -->
-        <section class="scene" id="scene-final">
-            <div class="final-content text-center">
-                <div class="final-image-container" id="final-image-wrapper"></div>
-                <h1 class="final-title" id="final-title"></h1>
-                <div class="final-message" id="final-message"></div>
-                <button id="btn-replay" class="secondary-btn mt-5">Celebrate Again 🎉</button>
-            </div>
-        </section>
-
+        <div id="action-container" class="mt-5" style="display: none; opacity: 0;">
+            <a href="/Wish" class="btn-premium">Begin Journey <i class="fa-solid fa-arrow-right ms-2"></i></a>
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    <script src="~/js/sound.js" asp-append-version="true"></script>
-    <script src="~/js/particles.js" asp-append-version="true"></script>
-    <script src="~/js/gifts.js" asp-append-version="true"></script>
-    <script src="~/js/chocolates.js" asp-append-version="true"></script>
-    <script src="~/js/cake.js" asp-append-version="true"></script>
-    <script src="~/js/gallery.js" asp-append-version="true"></script>
-    <script src="~/js/birthday.js" asp-append-version="true"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        const targetDate = new Date("@Model.TargetDate").getTime();
+        const actionContainer = document.getElementById('action-container');
+        let timerInterval;
+
+        function updateCountdown() {
+            const now = new Date().getTime();
+            const distance = targetDate - now;
+
+            if (distance <= 0) {
+                clearInterval(timerInterval);
+                document.getElementById('countdown-timer').style.display = 'none';
+                
+                // Show continue button
+                actionContainer.style.display = 'block';
+                gsap.to(actionContainer, { opacity: 1, y: -10, duration: 1, ease: 'power2.out' });
+                return;
+            }
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            document.getElementById("days").innerText = days.toString().padStart(2, '0');
+            document.getElementById("hours").innerText = hours.toString().padStart(2, '0');
+            document.getElementById("minutes").innerText = minutes.toString().padStart(2, '0');
+            document.getElementById("seconds").innerText = seconds.toString().padStart(2, '0');
+        }
+
+        updateCountdown();
+        timerInterval = setInterval(updateCountdown, 1000);
+        
+        // Initial entrance animation
+        gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'back.out(1.5)' });
+    </script>
 }

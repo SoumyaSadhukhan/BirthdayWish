@@ -1,0 +1,77 @@
+@page
+@model WishModel
+@{
+    ViewData["Title"] = "Happy Birthday";
+}
+
+<!-- Flowers Overlay using an SVG pattern -->
+<div style="position: absolute; top:0; left:0; width:100%; height:100%; background-image: url('data:image/svg+xml;utf8,<svg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'><g stroke=\'none\' stroke-width=\'1\' fill=\'none\' fill-rule=\'evenodd\'><g fill=\'%23ec4899\' fill-opacity=\'0.1\'><path d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/></g></g></svg>'); z-index: -1;"></div>
+
+<div class="fullscreen-center" id="wish-scene">
+    <div id="balloons-container" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; overflow: hidden; z-index: 0;"></div>
+    
+    <div class="glass-panel text-center" style="padding: 4rem; max-width: 800px; z-index: 10;">
+        <h1 class="mb-4" style="background: linear-gradient(to right, #f472b6, #c026d3); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Happy Birthday Piu!</h1>
+        <p class="mb-5" style="font-size: 1.5rem; line-height: 1.8;">
+            Wishing you a day filled with happiness and a year filled with joy.<br/>
+            May all your dreams come true!
+        </p>
+        
+        <a href="/Cake" class="btn-premium">Cut the Cake <i class="fa-solid fa-cake-candles ms-2"></i></a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Animate entrance
+        gsap.from('.glass-panel', { opacity: 0, y: 50, duration: 1.5, ease: 'power3.out' });
+
+        // Balloon animation logic
+        const container = document.getElementById('balloons-container');
+        const colors = ['#ec4899', '#c026d3', '#3b82f6', '#10b981', '#f59e0b'];
+
+        function createBalloon() {
+            const balloon = document.createElement('div');
+            const size = Math.random() * 40 + 40;
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            balloon.style.position = 'absolute';
+            balloon.style.width = size + 'px';
+            balloon.style.height = (size * 1.2) + 'px';
+            balloon.style.backgroundColor = color;
+            balloon.style.borderRadius = '50% 50% 50% 50% / 40% 40% 60% 60%';
+            balloon.style.bottom = '-100px';
+            balloon.style.left = Math.random() * 100 + '%';
+            balloon.style.opacity = '0.8';
+            balloon.style.boxShadow = 'inset -10px -10px 20px rgba(0,0,0,0.2)';
+            
+            // Balloon string
+            const string = document.createElement('div');
+            string.style.position = 'absolute';
+            string.style.bottom = '-30px';
+            string.style.left = '50%';
+            string.style.width = '2px';
+            string.style.height = '30px';
+            string.style.backgroundColor = 'rgba(255,255,255,0.4)';
+            balloon.appendChild(string);
+
+            container.appendChild(balloon);
+
+            gsap.to(balloon, {
+                y: -(window.innerHeight + 200),
+                x: (Math.random() - 0.5) * 200, // drift
+                rotation: (Math.random() - 0.5) * 45,
+                duration: Math.random() * 5 + 5,
+                ease: 'none',
+                onComplete: () => {
+                    balloon.remove();
+                }
+            });
+        }
+
+        // Keep creating balloons
+        setInterval(createBalloon, 800);
+        // Initial burst
+        for(let i=0; i<5; i++) setTimeout(createBalloon, i*200);
+    </script>
+}

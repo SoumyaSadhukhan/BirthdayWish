@@ -1,0 +1,273 @@
+@page
+@model CakeModel
+@{
+    ViewData["Title"] = "Time for Cake!";
+}
+
+<style>
+    .cake-container {
+        position: relative;
+        width: 300px;
+        height: 300px;
+        margin: 0 auto;
+        cursor: pointer;
+    }
+    
+    .cake-layer {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #fdf2f8; /* very light pink */
+        border-radius: 10px;
+        box-shadow: inset 0 -10px 20px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.2);
+        border: 2px solid #fbcfe8;
+    }
+    
+    .layer-1 { width: 250px; height: 100px; bottom: 20px; z-index: 1; }
+    .layer-2 { width: 200px; height: 80px; bottom: 120px; z-index: 2; background: #fce7f3; }
+    .layer-3 { width: 150px; height: 70px; bottom: 200px; z-index: 3; }
+    
+    .candle {
+        position: absolute;
+        width: 10px;
+        height: 40px;
+        background: #fbbf24;
+        bottom: 270px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 4;
+        border-radius: 5px;
+    }
+    
+    .flame {
+        position: absolute;
+        width: 16px;
+        height: 24px;
+        background: #fef08a;
+        bottom: 315px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 50% 50% 20% 20%;
+        z-index: 5;
+        box-shadow: 0 0 20px #fef08a, 0 0 40px #fef08a;
+        animation: flicker 0.5s infinite alternate;
+    }
+    
+    @@keyframes flicker {
+        0% { transform: translateX(-50%) scale(1); opacity: 1; }
+        100% { transform: translateX(-50%) scale(1.1); opacity: 0.8; }
+    }
+    
+    .knife-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 4px;
+        background: #fff;
+        box-shadow: 0 0 10px #fff;
+        transform: scaleY(0);
+        transform-origin: top;
+        z-index: 10;
+        pointer-events: none;
+    }
+</style>
+
+<div id="celebration-container" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; overflow: hidden; z-index: 9999;"></div>
+
+<div class="fullscreen-center" id="cake-scene">
+    <div class="glass-panel text-center" style="padding: 4rem; max-width: 800px; z-index: 10;">
+        <h2 class="mb-5">Make a wish and blow out the candle!</h2>
+        
+        <div class="cake-container" id="the-cake">
+            <div class="flame" id="flame"></div>
+            <div class="candle"></div>
+            <div class="cake-layer layer-3"></div>
+            <div class="cake-layer layer-2"></div>
+            <div class="cake-layer layer-1"></div>
+            <div class="knife-line" id="knife-line"></div>
+        </div>
+        
+        <p class="mt-4 text-muted" id="instruction-text">Tap to blow the candle</p>
+        
+        <div id="action-container" class="mt-4" style="display: none; opacity: 0;">
+            <a href="/Gift" class="btn-premium">Open Your Gift <i class="fa-solid fa-gift ms-2"></i></a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
+        
+        let tapCount = 0;
+        const cake = document.getElementById('the-cake');
+        const instructionText = document.getElementById('instruction-text');
+        const colors = ['#ec4899', '#c026d3', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+        
+        let audioContext;
+        let isBlowing = false;
+
+        function blowOutCandle() {
+            if (tapCount !== 0) return;
+            
+            const flame = document.getElementById('flame');
+            flame.style.animation = 'none'; // Stop CSS animation overriding GSAP
+            gsap.to(flame, { scale: 0, opacity: 0, duration: 0.3, onComplete: () => flame.style.display = 'none' });
+            
+            instructionText.innerText = "Now tap to cut the cake!";
+            gsap.fromTo(instructionText, { scale: 1.2, color: '#ec4899' }, { scale: 1, color: '#cbd5e1', duration: 0.5 });
+            tapCount++;
+            
+            if (audioContext && audioContext.state !== 'closed') {
+                audioContext.close();
+            }
+        }
+        
+        cake.addEventListener('click', () => {
+            // Resume AudioContext if suspended (browser auto-play policy)
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            if (tapCount === 0) {
+                blowOutCandle();
+            } else if (tapCount === 1) {
+                tapCount++;
+                
+                const tl = gsap.timeline();
+                tl.to('#knife-line', { scaleY: 1, duration: 0.5, ease: 'power2.in' })
+                  .to('#knife-line', { opacity: 0, duration: 0.2 })
+                  .to('.layer-1, .layer-2, .layer-3', { 
+                      x: (i) => i % 2 === 0 ? -20 : 20, 
+                      rotation: (i) => i % 2 === 0 ? -5 : 5,
+                      duration: 0.8,
+                      ease: 'back.out(1.5)'
+                  }, "-=0.2");
+                  
+                instructionText.style.display = 'none';
+                const actionContainer = document.getElementById('action-container');
+                actionContainer.style.display = 'block';
+                gsap.to(actionContainer, { opacity: 1, y: -10, duration: 1, delay: 1 });
+                
+                triggerCelebration();
+            }
+        });
+
+        // Initialize Microphone for blow detection
+        async function initMicrophone() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+                const microphone = audioContext.createMediaStreamSource(stream);
+                
+                microphone.connect(analyser);
+                analyser.fftSize = 512;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                instructionText.innerHTML = 'Blow into your microphone<br><small class="text-muted">(or just tap)</small>';
+                
+                function detectBlow() {
+                    if (tapCount !== 0) return;
+                    
+                    analyser.getByteFrequencyData(dataArray);
+                    let sum = 0;
+                    for(let i = 0; i < bufferLength; i++) {
+                        sum += dataArray[i];
+                    }
+                    let average = sum / bufferLength;
+                    
+                    // Volume threshold for blowing (adjust if too sensitive or insensitive)
+                    if (average > 60 && !isBlowing) {
+                        isBlowing = true;
+                        blowOutCandle();
+                    }
+                    
+                    requestAnimationFrame(detectBlow);
+                }
+                
+                detectBlow();
+            } catch (err) {
+                console.log("Mic access denied or unavailable.");
+                instructionText.innerText = "Tap the cake to blow the candle!";
+            }
+        }
+        
+        // Ask for mic permission after a short delay
+        setTimeout(initMicrophone, 1000);
+
+        function triggerCelebration() {
+            const container = document.getElementById('celebration-container');
+            
+            // Create Balloons
+            for(let i=0; i<15; i++) {
+                setTimeout(() => {
+                    const balloon = document.createElement('div');
+                    const size = Math.random() * 40 + 40;
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    balloon.style.position = 'absolute';
+                    balloon.style.width = size + 'px';
+                    balloon.style.height = (size * 1.2) + 'px';
+                    balloon.style.backgroundColor = color;
+                    balloon.style.borderRadius = '50% 50% 50% 50% / 40% 40% 60% 60%';
+                    balloon.style.bottom = '-100px';
+                    balloon.style.left = Math.random() * 100 + '%';
+                    balloon.style.opacity = '0.8';
+                    balloon.style.boxShadow = 'inset -10px -10px 20px rgba(0,0,0,0.2)';
+                    
+                    const string = document.createElement('div');
+                    string.style.position = 'absolute';
+                    string.style.bottom = '-30px';
+                    string.style.left = '50%';
+                    string.style.width = '2px';
+                    string.style.height = '30px';
+                    string.style.backgroundColor = 'rgba(255,255,255,0.4)';
+                    balloon.appendChild(string);
+        
+                    container.appendChild(balloon);
+        
+                    gsap.to(balloon, {
+                        y: -(window.innerHeight + 200),
+                        x: (Math.random() - 0.5) * 300,
+                        rotation: (Math.random() - 0.5) * 60,
+                        duration: Math.random() * 4 + 4,
+                        ease: 'power1.out',
+                        onComplete: () => balloon.remove()
+                    });
+                }, i * 150);
+            }
+
+            // Create Confetti (Pataka papers)
+            for(let i=0; i<100; i++) {
+                const confetti = document.createElement('div');
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                confetti.style.position = 'absolute';
+                confetti.style.width = (Math.random() * 10 + 5) + 'px';
+                confetti.style.height = (Math.random() * 20 + 10) + 'px';
+                confetti.style.backgroundColor = color;
+                confetti.style.top = '-20px';
+                confetti.style.left = Math.random() * 100 + '%';
+                confetti.style.opacity = '0.9';
+                
+                container.appendChild(confetti);
+                
+                gsap.to(confetti, {
+                    y: window.innerHeight + 50,
+                    x: "+=" + (Math.random() - 0.5) * 200,
+                    rotationX: Math.random() * 720,
+                    rotationY: Math.random() * 720,
+                    rotationZ: Math.random() * 720,
+                    duration: Math.random() * 2 + 2,
+                    ease: 'power1.in',
+                    delay: Math.random() * 0.5,
+                    onComplete: () => confetti.remove()
+                });
+            }
+        }
+    </script>
+}

@@ -1,0 +1,712 @@
+@page
+@model GiftModel
+@{
+    ViewData["Title"] = "Your Gift";
+}
+
+<style>
+    .scene-3d {
+        perspective: 1000px;
+        width: 100%;
+        height: 300px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 2rem;
+    }
+
+    .gift-box {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        transform-style: preserve-3d;
+        transform: rotateX(-20deg) rotateY(45deg);
+        cursor: pointer;
+        transition: transform 0.5s;
+    }
+    
+    .gift-box:hover {
+        transform: rotateX(-20deg) rotateY(45deg) scale(1.05);
+    }
+
+    .box-face {
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        background: linear-gradient(135deg, #c026d3, #ec4899);
+        border: 2px solid #fdf2f8;
+    }
+
+    .box-front  { transform: translateZ(100px); }
+    .box-back   { transform: rotateY(180deg) translateZ(100px); }
+    .box-right  { transform: rotateY(90deg) translateZ(100px); }
+    .box-left   { transform: rotateY(-90deg) translateZ(100px); }
+    .box-top    { transform: rotateX(90deg) translateZ(100px); background: #fbcfe8; }
+    .box-bottom { transform: rotateX(-90deg) translateZ(100px); background: #831843; }
+
+    /* Ribbons */
+    .ribbon-v, .ribbon-h {
+        position: absolute;
+        background: #fbbf24;
+    }
+    .ribbon-v { width: 40px; height: 100%; left: 80px; top: 0; }
+    .ribbon-h { width: 100%; height: 40px; top: 80px; left: 0; }
+
+    .gift-lid {
+        position: absolute;
+        width: 210px;
+        height: 50px;
+        top: -50px;
+        left: -5px;
+        transform-style: preserve-3d;
+        z-index: 10;
+    }
+
+    .lid-face {
+        position: absolute;
+        background: linear-gradient(135deg, #a21caf, #db2777);
+        border: 2px solid #fdf2f8;
+    }
+
+    .lid-front  { width: 210px; height: 50px; transform: translateZ(105px); }
+    .lid-back   { width: 210px; height: 50px; transform: rotateY(180deg) translateZ(105px); }
+    .lid-right  { width: 210px; height: 50px; transform: rotateY(90deg) translateZ(105px); }
+    .lid-left   { width: 210px; height: 50px; transform: rotateY(-90deg) translateZ(105px); }
+    .lid-top    { width: 210px; height: 210px; transform: rotateX(90deg) translateZ(105px); }
+
+    .loot-item {
+        position: absolute;
+        font-size: 8rem;
+        top: -100px;
+        left: 50%;
+        transform: translate(-50%, 0) scale(0);
+        opacity: 0;
+        z-index: 5;
+        filter: drop-shadow(0 0 30px rgba(251, 191, 36, 1));
+        pointer-events: none;
+    }
+
+    .loot-item-custom {
+        position: absolute;
+        top: -100px;
+        left: 50%;
+        transform: translate(-50%, 0) scale(0);
+        opacity: 0;
+        z-index: 5;
+        pointer-events: none;
+    }
+
+    .envelope-wrapper {
+        position: relative;
+        width: 150px;
+        height: 100px;
+        background: #fdf2f8;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        border: 2px solid #db2777;
+        perspective: 800px;
+        filter: drop-shadow(0 0 30px rgba(251, 191, 36, 1));
+    }
+    
+    .envelope-flap {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #fbcfe8;
+        clip-path: polygon(0 0, 100% 0, 50% 50%);
+        transform-origin: top;
+        z-index: 4;
+        border-bottom: 1px solid #db2777;
+    }
+    
+    .envelope-front {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #fce7f3;
+        clip-path: polygon(0 100%, 100% 100%, 100% 0, 50% 50%, 0 0);
+        z-index: 3;
+        border-top: 1px solid #db2777;
+    }
+    
+    .letter-paper {
+        position: absolute;
+        bottom: 5px;
+        left: 5px;
+        width: 136px;
+        height: 90px;
+        background: white;
+        z-index: 2;
+        padding: 10px;
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.6rem;
+        color: #831843;
+        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .photo-stack {
+        position: relative;
+        width: 240px;
+        height: 280px;
+        filter: drop-shadow(0 0 30px rgba(251, 191, 36, 1));
+        left: -50px; /* Offset to keep it centered since it's wider now */
+        top: -40px; /* Offset to keep it from hitting the top edge */
+    }
+    
+    .photo-card {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white; /* Fully opaque white */
+        padding: 10px 10px 60px 10px; /* Larger Polaroid style */
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        transform-origin: center;
+    }
+    
+    .photo-image {
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        background-color: #eee;
+    }
+    
+    .photo-caption {
+        position: absolute;
+        bottom: 18px;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        font-family: 'Outfit', sans-serif;
+        font-size: 1.2rem;
+        color: #831843;
+        font-weight: 600;
+    }
+    
+    .puzzle-board {
+        position: relative;
+        width: 320px;
+        height: 320px;
+        background: #eee;
+        border: 10px solid white;
+        border-radius: 6px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        box-sizing: content-box;
+        overflow: hidden;
+        pointer-events: auto !important; /* Force clicks to work */
+        z-index: 20;
+    }
+    
+    .puzzle-piece {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        background-size: 320px 320px;
+        background-repeat: no-repeat;
+        cursor: pointer;
+        box-sizing: border-box;
+        border: 1px solid rgba(255,255,255,0.4);
+        pointer-events: auto !important; /* Force clicks to work */
+    }
+    
+    .puzzle-piece:active {
+        transform: scale(0.95);
+        filter: brightness(1.2);
+    }
+</style>
+
+<div id="celebration-container" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; overflow: hidden; z-index: 9999;"></div>
+
+<div class="fullscreen-center" id="gift-scene">
+    <div class="glass-panel text-center" style="padding: 4rem; max-width: 800px; z-index: 10; width: 100%;">
+        <h2 class="mb-2" id="gift-heading">One Last Surprise</h2>
+        
+        <div class="scene-3d" style="position: relative;">
+            <div id="loot-container">
+                <div class="loot-item" id="loot-1">💐</div>
+                <div class="loot-item" id="loot-2">🧸</div>
+                <div class="loot-item" id="loot-3">🍫</div>
+                <div class="loot-item-custom" id="loot-4">
+                    <div class="envelope-wrapper">
+                        <div class="letter-paper" id="letter-paper">@Html.Raw(Model.LetterText)</div>
+                        <div class="envelope-front"></div>
+                        <div class="envelope-flap" id="envelope-flap"></div>
+                    </div>
+                </div>
+                <div class="loot-item-custom" id="loot-5">
+                    <div class="photo-stack" id="photo-stack">
+                        @if (Model.Images.Any())
+                        {
+                            var rnd = new Random();
+                            var i = 0;
+                            var captions = new[] { "Beautiful Moments", "Always Smiling", "My Favorite Person", "Unforgettable", "Cherished Memory", "Love You" };
+                            
+                            foreach (var img in Model.Images)
+                            {
+                                var zIndex = Model.Images.Count - i;
+                                var rot = (rnd.NextDouble() - 0.5) * 15; // -7.5 to +7.5 deg
+                                var cap = captions[i % captions.Length];
+                                <div class="photo-card" style="z-index: @zIndex; transform: rotate(@(rot)deg);">
+                                    <div class="photo-image" style="background-image: url('/images/@img');"></div>
+                                    <div class="photo-caption">@cap</div>
+                                </div>
+                                i++;
+                            }
+                        }
+                        else
+                        {
+                            <div style="font-size: 8rem; text-align: center;">🖼️</div>
+                        }
+                    </div>
+                </div>
+                <div class="loot-item-custom" id="loot-6">
+                    <div class="puzzle-board" id="puzzle-board"></div>
+                </div>
+            </div>
+            
+            <div class="gift-box" id="the-gift-box">
+                <!-- Box Base -->
+                <div class="box-face box-front"><div class="ribbon-v"></div><div class="ribbon-h"></div></div>
+                <div class="box-face box-back"><div class="ribbon-v"></div><div class="ribbon-h"></div></div>
+                <div class="box-face box-right"><div class="ribbon-v"></div><div class="ribbon-h"></div></div>
+                <div class="box-face box-left"><div class="ribbon-v"></div><div class="ribbon-h"></div></div>
+                <div class="box-face box-bottom"></div>
+                
+                <!-- Box Lid -->
+                <div class="gift-lid" id="gift-lid">
+                    <div class="lid-face lid-front"><div class="ribbon-v"></div></div>
+                    <div class="lid-face lid-back"><div class="ribbon-v"></div></div>
+                    <div class="lid-face lid-right"><div class="ribbon-h" style="top:10px; height:20px;"></div></div>
+                    <div class="lid-face lid-left"><div class="ribbon-h" style="top:10px; height:20px;"></div></div>
+                    <div class="lid-face lid-top"><div class="ribbon-v" style="left:85px;"></div><div class="ribbon-h" style="top:85px;"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-white-50 mt-5 mb-0" id="gift-instruction" style="font-size: 1.2rem;">Tap the box to open it!</p>
+
+        <div id="final-message" style="display:none; opacity:0; margin-top: 2rem;">
+            <h1 style="font-size: 3rem; background: linear-gradient(to right, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                You mean the world to me.
+            </h1>
+            <p class="mt-3">I hope this small digital journey brought a smile to your face.</p>
+            <a href="/" class="btn-premium mt-4" style="font-size: 1rem; padding: 10px 20px;">Replay <i class="fa-solid fa-rotate-right ms-2"></i></a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
+        
+        let isOpened = false;
+        let currentItem = 0;
+        let isAnimating = false;
+        let letterOpened = false;
+        let photoIndex = 0;
+        const totalPhotos = @Model.Images.Count;
+        
+        const allImages = [
+            @foreach(var img in Model.Images)
+            {
+                <text>'/images/@img',</text>
+            }
+        ];
+        
+        let puzzleImage = '';
+        let puzzleActive = false;
+        let puzzleSolved = false;
+        let selectedPiece = null;
+        const puzzlePieces = [];
+        
+        const giftBox = document.getElementById('the-gift-box');
+        const lid = document.getElementById('gift-lid');
+        const instruction = document.getElementById('gift-instruction');
+        const heading = document.getElementById('gift-heading');
+        
+        const itemEmojis = {
+            1: '🌹',
+            2: '🧸',
+            3: '🍫',
+            4: '💌',
+            5: '🖼️'
+        };
+        
+        // Idle animation for the box
+        gsap.to(giftBox, {
+            y: -10,
+            duration: 2,
+            yoyo: true,
+            repeat: -1,
+            ease: 'sine.inOut'
+        });
+
+        // Listen for taps anywhere on the screen
+        document.body.addEventListener('click', (e) => {
+            if (isAnimating) return;
+            
+            if (!isOpened) {
+                // Must tap the box itself to open initially
+                if (!e.target.closest('#the-gift-box')) return;
+                
+                isOpened = true;
+                isAnimating = true;
+                
+                instruction.style.display = 'none';
+                heading.innerText = "Surprise!";
+                
+                const tl = gsap.timeline({ onComplete: () => isAnimating = false });
+
+                // Pop the lid
+                tl.to(lid, {
+                    y: -250,
+                    x: 150,
+                    rotationX: 45,
+                    rotationY: 45,
+                    rotationZ: 45,
+                    opacity: 0,
+                    duration: 1,
+                    ease: 'power2.out'
+                }, "0");
+
+                // Expand the box slightly
+                tl.to(giftBox, { scale: 1.1, duration: 0.5 }, "0");
+                
+                // Automatically show the first item
+                currentItem = 1;
+                showItem(currentItem, tl, "0.5");
+                
+                // Show instruction to tap for more
+                setTimeout(() => {
+                    instruction.innerText = "Tap for next gift!";
+                    instruction.style.display = 'block';
+                    gsap.fromTo(instruction, {opacity: 0, y:20}, {opacity: 1, y:0, duration:0.5});
+                }, 1500);
+
+            } else {
+                // Already opened, cycle to next item
+                if (currentItem > 0 && currentItem <= 5) {
+                    // Check if we are on the letter (item 4) and it hasn't been opened yet
+                    if (currentItem === 4 && !letterOpened) {
+                        isAnimating = true;
+                        letterOpened = true;
+                        
+                        const tl = gsap.timeline({ onComplete: () => isAnimating = false });
+                        
+                        // Open envelope flap
+                        tl.to('#envelope-flap', { rotationX: 180, duration: 0.5, ease: 'power2.inOut' });
+                        
+                        // Slide paper up, scale it, and bring it to front
+                        tl.to('#letter-paper', {
+                            y: -40, // Even lower for the opened letter
+                            scale: 2.2,
+                            width: '200px',
+                            height: 'auto',
+                            minHeight: '150px',
+                            padding: '15px',
+                            fontSize: '0.8rem',
+                            zIndex: 10,
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                            duration: 1, 
+                            ease: 'power2.out'
+                        }, "+=0.1");
+                        
+                        return; // Stop here, so we don't fly it away yet
+                    }
+
+                    // If puzzle is active and unsolved, block the body tap from flying it away
+                    if (currentItem === 6) {
+                        if (!puzzleSolved) {
+                            instruction.innerText = "Tap two pieces to swap them!";
+                            return;
+                        }
+                    }
+
+                    // Check if we are on the gallery (item 5) and have photos left to swipe
+                    if (currentItem === 5 && photoIndex < totalPhotos) {
+                        isAnimating = true;
+                        
+                        const cards = document.querySelectorAll('.photo-card');
+                        if (cards.length > 0 && photoIndex < cards.length) {
+                            const currentCard = cards[photoIndex];
+                            
+                            // Swipe the photo away (throw it to the side)
+                            gsap.to(currentCard, {
+                                x: (Math.random() > 0.5 ? 200 : -200), // Randomly throw left or right
+                                y: -200, 
+                                rotation: (Math.random() - 0.5) * 90, 
+                                opacity: 0, 
+                                duration: 0.6, 
+                                ease: 'power2.in',
+                                onComplete: () => isAnimating = false
+                            });
+                            
+                            photoIndex++;
+                            return; // Stop here, wait for next tap
+                        }
+                    }
+
+                    isAnimating = true;
+                    const tl = gsap.timeline({ onComplete: () => isAnimating = false });
+                    
+                    flyAwayItem(currentItem, tl);
+                    
+                    currentItem++;
+                    
+                    if (currentItem <= 6) {
+                        showItem(currentItem, tl, "-=0.1");
+                    } else {
+                        // This else block is no longer the final win state, 
+                        // as the puzzle handles its own win state.
+                    }
+                }
+            }
+        });
+
+        function showItem(index, tl, position = "+=0") {
+            const item = document.getElementById(`loot-${index}`);
+            tl.fromTo(item, 
+                { opacity: 0, y: 0, scale: 0, x: '-50%' },
+                {
+                    y: -60, // Hover much closer to the box
+                    scale: 1, // Element is already large in CSS
+                    opacity: 1,
+                    rotation: (Math.random() - 0.5) * 15,
+                    duration: 0.8,
+                    ease: 'back.out(1.5)',
+                    onComplete: () => {
+                        gsap.to(item, {
+                            y: -80, // Subtle hover
+                            duration: 1.5,
+                            ease: 'sine.inOut',
+                            yoyo: true,
+                            repeat: -1
+                        });
+                        
+                        if (index === 6) {
+                            initPuzzle();
+                            scramblePuzzle();
+                        } else {
+                            triggerParticleCelebration(itemEmojis[index] || '🎉');
+                        }
+                    }
+                }, 
+                position
+            );
+        }
+
+        function triggerParticleCelebration(emojiChar) {
+            const container = document.getElementById('celebration-container');
+            
+            for(let i=0; i<120; i++) {
+                const particle = document.createElement('div');
+                particle.innerText = emojiChar;
+                particle.style.position = 'absolute';
+                particle.style.fontSize = (Math.random() * 2 + 1) + 'rem';
+                
+                // Start them at varied heights above the screen so they don't fall in a clump
+                particle.style.top = -(Math.random() * 300 + 50) + 'px';
+                
+                // Spread them across the entire width
+                particle.style.left = Math.random() * 100 + '%';
+                
+                particle.style.opacity = Math.random() * 0.6 + 0.4;
+                particle.style.filter = 'drop-shadow(0 0 10px rgba(0,0,0,0.2))';
+                
+                container.appendChild(particle);
+                
+                gsap.to(particle, {
+                    y: window.innerHeight + 500, // fall past the screen
+                    x: "+=" + (Math.random() - 0.5) * 800, // drift much wider horizontally
+                    rotation: (Math.random() - 0.5) * 720, // spin more randomly
+                    duration: Math.random() * 5 + 4, // vary speed from 4s to 9s
+                    ease: 'none',
+                    delay: Math.random() * 4, // scatter their start times over 4 seconds!
+                    onComplete: () => particle.remove()
+                });
+            }
+        }
+
+        function flyAwayItem(index, tl) {
+            const item = document.getElementById(`loot-${index}`);
+            gsap.killTweensOf(item); // Stop the hovering
+            tl.to(item, {
+                scale: 0,
+                opacity: 0,
+                x: 300,
+                y: -100,
+                rotation: 180,
+                duration: 0.6,
+                ease: 'power2.in'
+            });
+        }
+        
+        let blankIndex = 15; // The empty spot
+        
+        function initPuzzle() {
+            if (allImages.length > 0) {
+                puzzleImage = allImages[Math.floor(Math.random() * allImages.length)];
+            }
+            if (!puzzleImage) return;
+            
+            const board = document.getElementById('puzzle-board');
+            board.innerHTML = ''; // clear
+            board.style.pointerEvents = 'auto'; // FIX: allow pieces to be clicked!
+            puzzlePieces.length = 0;
+            
+            // Create 15 pieces (leave 16th slot blank)
+            for (let i = 0; i < 15; i++) {
+                const row = Math.floor(i / 4);
+                const col = i % 4;
+                
+                const piece = document.createElement('div');
+                piece.className = 'puzzle-piece';
+                piece.style.backgroundImage = `url('${puzzleImage}')`;
+                
+                const correctX = col * 80;
+                const correctY = row * 80;
+                
+                piece.style.backgroundPosition = `-${correctX}px -${correctY}px`;
+                
+                piece.dataset.correctIndex = i;
+                piece.dataset.currentIndex = i;
+                
+                gsap.set(piece, { x: correctX, y: correctY });
+                
+                board.appendChild(piece);
+                puzzlePieces.push(piece);
+                
+                ['click', 'touchstart'].forEach(evt => {
+                    piece.addEventListener(evt, (e) => {
+                        e.stopPropagation();
+                        e.preventDefault(); // prevent double firing on mobile
+                        handlePieceSlide(piece);
+                    });
+                });
+            }
+            blankIndex = 15;
+        }
+
+        function scramblePuzzle() {
+            puzzleActive = true;
+            instruction.innerText = "Oh no, it broke! Tap a piece next to the blank space to slide it.";
+            instruction.style.display = 'block';
+            gsap.fromTo(instruction, {opacity: 0, y:20}, {opacity: 1, y:0, duration:0.5});
+            
+            // To ensure solvability, we make 200 random valid slides
+            let previousBlank = -1;
+            let moves = 0;
+            
+            while (moves < 200) {
+                const validNeighbors = getValidNeighbors(blankIndex);
+                // Don't reverse the previous move immediately to ensure good shuffling
+                const possibleMoves = validNeighbors.filter(n => n !== previousBlank);
+                const moveToMake = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                
+                const pieceToMove = puzzlePieces.find(p => parseInt(p.dataset.currentIndex) === moveToMake);
+                
+                if (pieceToMove) {
+                    pieceToMove.dataset.currentIndex = blankIndex;
+                    previousBlank = blankIndex;
+                    blankIndex = moveToMake;
+                    moves++;
+                }
+            }
+            
+            // Animate pieces to their scrambled positions
+            puzzlePieces.forEach((piece, i) => {
+                const idx = parseInt(piece.dataset.currentIndex);
+                const col = idx % 4;
+                const row = Math.floor(idx / 4);
+                gsap.to(piece, { x: col * 80, y: row * 80, duration: 0.8, ease: 'power2.out', delay: 0.5 + Math.random() * 0.2 });
+            });
+        }
+        
+        function getValidNeighbors(index) {
+            const neighbors = [];
+            const col = index % 4;
+            const row = Math.floor(index / 4);
+            
+            if (row > 0) neighbors.push(index - 4); // Up
+            if (row < 3) neighbors.push(index + 4); // Down
+            if (col > 0) neighbors.push(index - 1); // Left
+            if (col < 3) neighbors.push(index + 1); // Right
+            
+            return neighbors;
+        }
+
+        function handlePieceSlide(piece) {
+            if (!puzzleActive) return;
+            
+            const pieceIndex = parseInt(piece.dataset.currentIndex);
+            const validNeighbors = getValidNeighbors(blankIndex);
+            
+            if (validNeighbors.includes(pieceIndex)) {
+                // It is adjacent to the blank space! Swap them.
+                const newBlank = pieceIndex;
+                piece.dataset.currentIndex = blankIndex;
+                blankIndex = newBlank;
+                
+                const newCol = piece.dataset.currentIndex % 4;
+                const newRow = Math.floor(piece.dataset.currentIndex / 4);
+                
+                gsap.to(piece, { x: newCol * 80, y: newRow * 80, duration: 0.2 });
+                
+                setTimeout(checkPuzzleWin, 250);
+            }
+        }
+
+        function checkPuzzleWin() {
+            let won = true;
+            puzzlePieces.forEach(p => {
+                if (parseInt(p.dataset.correctIndex) !== parseInt(p.dataset.currentIndex)) won = false;
+            });
+            
+            if (won) {
+                puzzleActive = false;
+                puzzleSolved = true;
+                instruction.innerText = "You fixed it!";
+                
+                const board = document.getElementById('puzzle-board');
+                gsap.to(board, { borderColor: '#10b981', duration: 0.3, yoyo: true, repeat: 3 });
+                
+                // Remove grid lines
+                puzzlePieces.forEach(p => {
+                    gsap.to(p, { borderColor: 'transparent', duration: 0.5 });
+                });
+                
+                // Fill the blank space with the missing 16th piece!
+                const missingPiece = document.createElement('div');
+                missingPiece.className = 'puzzle-piece';
+                missingPiece.style.backgroundImage = `url('${puzzleImage}')`;
+                missingPiece.style.backgroundPosition = `-240px -240px`;
+                missingPiece.style.opacity = 0;
+                missingPiece.style.borderColor = 'transparent';
+                gsap.set(missingPiece, { x: 240, y: 240 });
+                board.appendChild(missingPiece);
+                gsap.to(missingPiece, { opacity: 1, duration: 1 });
+                
+                triggerParticleCelebration('🎉');
+                
+                setTimeout(() => {
+                    const tl = gsap.timeline();
+                    flyAwayItem(6, tl);
+                    
+                    instruction.style.display = 'none';
+                    const finalMsg = document.getElementById('final-message');
+                    finalMsg.style.display = 'block';
+                    tl.to(finalMsg, { opacity: 1, y: -20, duration: 1 }, "-=0.2");
+                }, 2000);
+            }
+        }
+    </script>
+}
