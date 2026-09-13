@@ -108,6 +108,15 @@
         pointer-events: none;
     }
 
+    .premium-badge {
+        width: 220px;
+        height: 220px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        filter: drop-shadow(0 20px 30px rgba(0,0,0,0.4));
+    }
+
     .envelope-wrapper {
         position: relative;
         width: 150px;
@@ -119,17 +128,44 @@
         filter: drop-shadow(0 0 30px rgba(251, 191, 36, 1));
     }
     
+    /* Realistic Envelope Folds */
+    .envelope-left {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: #fbcfe8;
+        clip-path: polygon(0 0, 0 100%, 50% 50%);
+        z-index: 3;
+    }
+    
+    .envelope-right {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: #fbcfe8;
+        clip-path: polygon(100% 0, 100% 100%, 50% 50%);
+        z-index: 3;
+    }
+    
+    .envelope-bottom {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: #f9a8d4;
+        clip-path: polygon(0 100%, 100% 100%, 50% 50%);
+        z-index: 3;
+    }
+    
     .envelope-flap {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        height: 100%;
-        background: #fbcfe8;
-        clip-path: polygon(0 0, 100% 0, 50% 50%);
-        transform-origin: top;
+        height: 65%; /* Extended flap slightly */
+        background: #f472b6;
+        clip-path: polygon(0 0, 100% 0, 50% 100%);
+        transform-origin: top center;
         z-index: 4;
-        border-bottom: 1px solid #db2777;
     }
     
     .wax-seal {
@@ -151,17 +187,7 @@
         font-family: Arial, sans-serif;
     }
     
-    .envelope-front {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #fce7f3;
-        clip-path: polygon(0 100%, 100% 100%, 100% 0, 50% 50%, 0 0);
-        z-index: 3;
-        border-top: 1px solid #db2777;
-    }
+    /* End of Envelope Styles */
     
     .letter-paper {
         position: absolute;
@@ -279,13 +305,21 @@
         
         <div class="scene-3d" style="position: relative;">
             <div id="loot-container">
-                <div class="loot-item" id="loot-1">💐</div>
-                <div class="loot-item" id="loot-2">🧸</div>
-                <div class="loot-item" id="loot-3">🍫</div>
+                <div class="loot-item" id="loot-1">
+                    <div class="premium-badge" style="background-image: url('/images/image_card/flower_bouquet.png');"></div>
+                </div>
+                <div class="loot-item" id="loot-2">
+                    <div class="premium-badge" style="background-image: url('/images/image_card/teddy_bears.png');"></div>
+                </div>
+                <div class="loot-item" id="loot-3">
+                    <div class="premium-badge" style="background-image: url('/images/image_card/chocolate_bunch.png');"></div>
+                </div>
                 <div class="loot-item-custom" id="loot-4">
                     <div class="envelope-wrapper">
                         <div class="letter-paper" id="letter-paper">@Html.Raw(Model.LetterText)</div>
-                        <div class="envelope-front"></div>
+                        <div class="envelope-left"></div>
+                        <div class="envelope-right"></div>
+                        <div class="envelope-bottom"></div>
                         <div class="envelope-flap" id="envelope-flap">
                             <div class="wax-seal" id="wax-seal">❤</div>
                         </div>
@@ -466,10 +500,20 @@
                         
                         const isMobile = window.innerWidth <= 400;
                         
-                        // Slide paper up, scale it, and pop it OUT of the envelope so it is fully readable!
+                        // 1. Slide letter straight UP out of the envelope first (keep it narrow so it doesn't clip the sides)
                         tl.to('#letter-paper', {
-                            y: isMobile ? -30 : -50, // Slide up enough to look pulled out
-                            x: isMobile ? -50 : -80, // Center horizontally relative to 150px envelope
+                            y: -95, 
+                            duration: 0.4, 
+                            ease: 'power2.out'
+                        }, "+=0.1");
+                        
+                        // 2. Once it's out, pop it in FRONT of the envelope
+                        tl.set('#letter-paper', { zIndex: 10 });
+                        
+                        // 3. Expand and scale the letter to reading size
+                        tl.to('#letter-paper', {
+                            y: isMobile ? -30 : -50,
+                            x: isMobile ? -50 : -80, // Center horizontally
                             scale: 1, 
                             width: isMobile ? '240px' : '300px',
                             height: 'auto',
@@ -477,11 +521,10 @@
                             padding: '20px',
                             fontSize: isMobile ? '1.2rem' : '1.4rem',
                             color: '#1f2937',
-                            zIndex: 10, // Must be 10 so the envelope packet doesn't cover the letter text!
                             boxShadow: '0 20px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(0,0,0,0.05)',
-                            duration: 1, 
+                            duration: 0.6, 
                             ease: 'power2.out'
-                        }, "+=0.1");
+                        });
                         
                         return; // Stop here, so we don't fly it away yet
                     }
@@ -563,8 +606,14 @@
                             triggerParticleCelebration('photo');
                         } else if (index === 4) {
                             triggerParticleCelebration('letter');
+                        } else if (index === 3) {
+                            triggerParticleCelebration('badge', '/images/image_card/chocolate_bunch.png');
+                        } else if (index === 2) {
+                            triggerParticleCelebration('badge', '/images/image_card/teddy_bears.png');
+                        } else if (index === 1) {
+                            triggerParticleCelebration('badge', '/images/image_card/flower_bouquet.png');
                         } else {
-                            triggerParticleCelebration('emoji', itemEmojis[index] || '🎉');
+                            triggerParticleCelebration('emoji', '🎉');
                         }
                     }
                 }, 
@@ -581,15 +630,17 @@
                 if (type === 'photo' || type === 'puzzle') {
                     const imgUrl = allImages[Math.floor(Math.random() * allImages.length)];
                     if (type === 'photo') {
-                        particle.innerHTML = `<div style="width:30px; height:35px; background:#fff; border:1px solid #ccc; padding:3px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"><div style="width:100%; height:22px; background-image:url('${imgUrl}'); background-size:cover; background-position:center;"></div></div>`;
+                        particle.innerHTML = `<div style="width:20px; height:24px; background:#fff; border:1px solid #ccc; padding:2px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"><div style="width:100%; height:15px; background-image:url('${imgUrl}'); background-size:cover; background-position:center;"></div></div>`;
                     } else {
-                        particle.innerHTML = `<div style="width:30px; height:30px; border:1px solid rgba(255,255,255,0.8); background-image:url('${imgUrl}'); background-size:120px 120px; background-position:-${Math.floor(Math.random()*4)*30}px -${Math.floor(Math.random()*4)*30}px;"></div>`;
+                        particle.innerHTML = `<div style="width:20px; height:20px; border:1px solid rgba(255,255,255,0.8); background-image:url('${imgUrl}'); background-size:80px 80px; background-position:-${Math.floor(Math.random()*4)*20}px -${Math.floor(Math.random()*4)*20}px;"></div>`;
                     }
                 } else if (type === 'letter') {
-                    particle.innerHTML = '<div style="width:30px; height:20px; background:#fce7f3; border:1px solid #db2777; position:relative;"><div style="position:absolute; top:0; left:0; width:100%; height:10px; background:#fbcfe8; clip-path:polygon(0 0, 100% 0, 50% 100%);"></div></div>';
+                    particle.innerHTML = '<div style="width:22px; height:14px; background:#fce7f3; border:1px solid #db2777; position:relative;"><div style="position:absolute; top:0; left:0; width:100%; height:7px; background:#fbcfe8; clip-path:polygon(0 0, 100% 0, 50% 100%);"></div></div>';
+                } else if (type === 'badge') {
+                    particle.innerHTML = `<div style="width:30px; height:30px; background-image:url('${emojiChar}'); background-size:contain; background-repeat:no-repeat; background-position:center; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.3));"></div>`;
                 } else {
                     particle.innerText = emojiChar;
-                    particle.style.fontSize = (Math.random() * 2 + 1) + 'rem';
+                    particle.style.fontSize = (Math.random() * 1.5 + 0.8) + 'rem';
                 }
                 
                 particle.style.position = 'absolute';
