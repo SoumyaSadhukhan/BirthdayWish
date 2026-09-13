@@ -394,9 +394,9 @@
 
 @section Scripts {
     <script>
-        const txtNext = "@Html.Raw(Config["BirthdayConfig:GiftInstructionNext"])";
-        const txtScrambled = "@Html.Raw(Config["BirthdayConfig:PuzzleInstructionScrambled"])";
-        const txtSolved = "@Html.Raw(Config["BirthdayConfig:PuzzleInstructionSolved"])";
+        const txtNext = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:GiftInstructionNext"]));
+        const txtScrambled = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:PuzzleInstructionScrambled"]));
+        const txtSolved = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:PuzzleInstructionSolved"]));
         
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         

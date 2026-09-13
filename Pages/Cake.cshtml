@@ -112,9 +112,9 @@
 
 @section Scripts {
     <script>
-        const txtCut = "@Html.Raw(Config["BirthdayConfig:CakeInstructionCut"])";
-        const txtMic = "@Html.Raw(Config["BirthdayConfig:CakeInstructionMic"])";
-        const txtInitial = "@Html.Raw(Config["BirthdayConfig:CakeInstructionInitial"])";
+        const txtCut = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:CakeInstructionCut"]));
+        const txtMic = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:CakeInstructionMic"]));
+        const txtInitial = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:CakeInstructionInitial"]));
         
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
