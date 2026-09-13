@@ -1,7 +1,10 @@
 @page
+@using Microsoft.Extensions.Configuration
+@using System.Linq
+@inject IConfiguration Config
 @model GiftModel
 @{
-    ViewData["Title"] = "Your Gift";
+    ViewData["Title"] = Config["BirthdayConfig:GiftTitle"];
 }
 
 <style>
@@ -74,12 +77,21 @@
     .lid-left   { width: 210px; height: 50px; transform: rotateY(-90deg) translateZ(105px); }
     .lid-top    { width: 210px; height: 210px; transform: rotateX(90deg) translateZ(105px); }
 
+    #loot-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        z-index: 15;
+    }
+
     .loot-item {
         position: absolute;
         font-size: 8rem;
-        top: -100px;
-        left: 50%;
-        transform: translate(-50%, 0) scale(0);
+        top: 0;
+        left: 0;
+        transform: scale(0);
         opacity: 0;
         z-index: 5;
         filter: drop-shadow(0 0 30px rgba(251, 191, 36, 1));
@@ -88,9 +100,9 @@
 
     .loot-item-custom {
         position: absolute;
-        top: -100px;
-        left: 50%;
-        transform: translate(-50%, 0) scale(0);
+        top: 0;
+        left: 0;
+        transform: scale(0);
         opacity: 0;
         z-index: 5;
         pointer-events: none;
@@ -120,6 +132,25 @@
         border-bottom: 1px solid #db2777;
     }
     
+    .wax-seal {
+        position: absolute;
+        bottom: 40px; /* Aligned with the point of the flap */
+        left: 50%;
+        transform: translate(-50%, 50%);
+        width: 24px;
+        height: 24px;
+        background: #e11d48;
+        border-radius: 50%;
+        z-index: 5;
+        box-shadow: inset 0 0 5px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.2);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+        font-size: 0.6rem;
+        font-family: Arial, sans-serif;
+    }
+    
     .envelope-front {
         position: absolute;
         top: 0;
@@ -138,13 +169,15 @@
         left: 5px;
         width: 136px;
         height: 90px;
-        background: white;
+        background-color: #fffdf2;
+        background-image: linear-gradient(120deg, #fffcf3 0%, #fdf5e0 100%);
         z-index: 2;
         padding: 10px;
-        font-family: 'Outfit', sans-serif;
-        font-size: 0.6rem;
-        color: #831843;
-        box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        font-family: 'Caveat', cursive;
+        font-size: 0.9rem;
+        color: #4b5563;
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.1);
+        border-radius: 2px;
         overflow: hidden;
     }
 
@@ -153,8 +186,6 @@
         width: 240px;
         height: 280px;
         filter: drop-shadow(0 0 30px rgba(251, 191, 36, 1));
-        left: -50px; /* Offset to keep it centered since it's wider now */
-        top: -40px; /* Offset to keep it from hitting the top edge */
     }
     
     .photo-card {
@@ -222,13 +253,29 @@
         transform: scale(0.95);
         filter: brightness(1.2);
     }
+    
+    @@media (max-width: 400px) {
+        .photo-card {
+            width: 240px;
+            height: 300px;
+        }
+        
+        .puzzle-board {
+            transform: scale(0.75);
+            margin: -40px auto;
+        }
+        
+        #final-message h1 {
+            font-size: 2.2rem !important;
+        }
+    }
 </style>
 
 <div id="celebration-container" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; overflow: hidden; z-index: 9999;"></div>
 
 <div class="fullscreen-center" id="gift-scene">
     <div class="glass-panel text-center" style="padding: 4rem; max-width: 800px; z-index: 10; width: 100%;">
-        <h2 class="mb-2" id="gift-heading">One Last Surprise</h2>
+        <h2 class="mb-2" id="gift-heading">@Config["BirthdayConfig:GiftHeading"]</h2>
         
         <div class="scene-3d" style="position: relative;">
             <div id="loot-container">
@@ -239,7 +286,9 @@
                     <div class="envelope-wrapper">
                         <div class="letter-paper" id="letter-paper">@Html.Raw(Model.LetterText)</div>
                         <div class="envelope-front"></div>
-                        <div class="envelope-flap" id="envelope-flap"></div>
+                        <div class="envelope-flap" id="envelope-flap">
+                            <div class="wax-seal" id="wax-seal">❤</div>
+                        </div>
                     </div>
                 </div>
                 <div class="loot-item-custom" id="loot-5">
@@ -248,7 +297,10 @@
                         {
                             var rnd = new Random();
                             var i = 0;
-                            var captions = new[] { "Beautiful Moments", "Always Smiling", "My Favorite Person", "Unforgettable", "Cherished Memory", "Love You" };
+                            var captions = Config.GetSection("BirthdayConfig:PhotoCaptions").GetChildren().Select(c => c.Value).ToArray();
+                            if (captions.Length == 0) {
+                                captions = new[] { "Memory" };
+                            }
                             
                             foreach (var img in Model.Images)
                             {
@@ -292,20 +344,26 @@
             </div>
         </div>
 
-        <p class="text-white-50 mt-5 mb-0" id="gift-instruction" style="font-size: 1.2rem;">Tap the box to open it!</p>
+        <p class="text-white-50 mt-5 mb-0" id="gift-instruction" style="font-size: 1.2rem;">@Config["BirthdayConfig:GiftInstructionInitial"]</p>
 
-        <div id="final-message" style="display:none; opacity:0; margin-top: 2rem;">
+        <div id="final-message" style="display: none; margin-top: 2rem;">
             <h1 style="font-size: 3rem; background: linear-gradient(to right, #fbbf24, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-                You mean the world to me.
+                @Config["BirthdayConfig:FinalMessage"]
             </h1>
-            <p class="mt-3">I hope this small digital journey brought a smile to your face.</p>
-            <a href="/" class="btn-premium mt-4" style="font-size: 1rem; padding: 10px 20px;">Replay <i class="fa-solid fa-rotate-right ms-2"></i></a>
+            <p style="font-size: 1.5rem; color: #fde68a;">@Config["BirthdayConfig:FinalMessageSub"]</p>
+            <div class="mt-4">
+                <a href="/" class="btn-premium">@Config["BirthdayConfig:ReplayButtonText"] <i class="fa-solid fa-rotate-left ms-2"></i></a>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
+        const txtNext = "@Html.Raw(Config["BirthdayConfig:GiftInstructionNext"])";
+        const txtScrambled = "@Html.Raw(Config["BirthdayConfig:PuzzleInstructionScrambled"])";
+        const txtSolved = "@Html.Raw(Config["BirthdayConfig:PuzzleInstructionSolved"])";
+        
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
         let isOpened = false;
@@ -387,7 +445,7 @@
                 
                 // Show instruction to tap for more
                 setTimeout(() => {
-                    instruction.innerText = "Tap for next gift!";
+                    instruction.innerText = txtNext;
                     instruction.style.display = 'block';
                     gsap.fromTo(instruction, {opacity: 0, y:20}, {opacity: 1, y:0, duration:0.5});
                 }, 1500);
@@ -402,20 +460,25 @@
                         
                         const tl = gsap.timeline({ onComplete: () => isAnimating = false });
                         
-                        // Open envelope flap
-                        tl.to('#envelope-flap', { rotationX: 180, duration: 0.5, ease: 'power2.inOut' });
+                        // Open envelope flap and break wax seal
+                        tl.to('#wax-seal', { opacity: 0, scale: 0, duration: 0.3 }, 0);
+                        tl.to('#envelope-flap', { rotationX: 180, duration: 0.5, ease: 'power2.inOut', zIndex: 1 }, 0);
                         
-                        // Slide paper up, scale it, and bring it to front
+                        const isMobile = window.innerWidth <= 400;
+                        
+                        // Slide paper up, scale it, and pop it OUT of the envelope so it is fully readable!
                         tl.to('#letter-paper', {
-                            y: -40, // Even lower for the opened letter
-                            scale: 2.2,
-                            width: '200px',
+                            y: isMobile ? -30 : -50, // Slide up enough to look pulled out
+                            x: isMobile ? -50 : -80, // Center horizontally relative to 150px envelope
+                            scale: 1, 
+                            width: isMobile ? '240px' : '300px',
                             height: 'auto',
-                            minHeight: '150px',
-                            padding: '15px',
-                            fontSize: '0.8rem',
-                            zIndex: 10,
-                            boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+                            minHeight: '200px',
+                            padding: '20px',
+                            fontSize: isMobile ? '1.2rem' : '1.4rem',
+                            color: '#1f2937',
+                            zIndex: 10, // Must be 10 so the envelope packet doesn't cover the letter text!
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(0,0,0,0.05)',
                             duration: 1, 
                             ease: 'power2.out'
                         }, "+=0.1");
@@ -475,17 +538,17 @@
         function showItem(index, tl, position = "+=0") {
             const item = document.getElementById(`loot-${index}`);
             tl.fromTo(item, 
-                { opacity: 0, y: 0, scale: 0, x: '-50%' },
+                { opacity: 0, y: 0, scale: 0, xPercent: -50, yPercent: -50 },
                 {
-                    y: -60, // Hover much closer to the box
-                    scale: 1, // Element is already large in CSS
+                    y: -120, // Hover above the center of the box
+                    scale: 1,
                     opacity: 1,
                     rotation: (Math.random() - 0.5) * 15,
                     duration: 0.8,
                     ease: 'back.out(1.5)',
                     onComplete: () => {
                         gsap.to(item, {
-                            y: -80, // Subtle hover
+                            y: -140, // Subtle hover
                             duration: 1.5,
                             ease: 'sine.inOut',
                             yoyo: true,
@@ -495,8 +558,13 @@
                         if (index === 6) {
                             initPuzzle();
                             scramblePuzzle();
+                            triggerParticleCelebration('puzzle');
+                        } else if (index === 5) {
+                            triggerParticleCelebration('photo');
+                        } else if (index === 4) {
+                            triggerParticleCelebration('letter');
                         } else {
-                            triggerParticleCelebration(itemEmojis[index] || '🎉');
+                            triggerParticleCelebration('emoji', itemEmojis[index] || '🎉');
                         }
                     }
                 }, 
@@ -504,14 +572,27 @@
             );
         }
 
-        function triggerParticleCelebration(emojiChar) {
+        function triggerParticleCelebration(type, emojiChar = '') {
             const container = document.getElementById('celebration-container');
             
-            for(let i=0; i<120; i++) {
+            for(let i=0; i<80; i++) {
                 const particle = document.createElement('div');
-                particle.innerText = emojiChar;
+                
+                if (type === 'photo' || type === 'puzzle') {
+                    const imgUrl = allImages[Math.floor(Math.random() * allImages.length)];
+                    if (type === 'photo') {
+                        particle.innerHTML = `<div style="width:30px; height:35px; background:#fff; border:1px solid #ccc; padding:3px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"><div style="width:100%; height:22px; background-image:url('${imgUrl}'); background-size:cover; background-position:center;"></div></div>`;
+                    } else {
+                        particle.innerHTML = `<div style="width:30px; height:30px; border:1px solid rgba(255,255,255,0.8); background-image:url('${imgUrl}'); background-size:120px 120px; background-position:-${Math.floor(Math.random()*4)*30}px -${Math.floor(Math.random()*4)*30}px;"></div>`;
+                    }
+                } else if (type === 'letter') {
+                    particle.innerHTML = '<div style="width:30px; height:20px; background:#fce7f3; border:1px solid #db2777; position:relative;"><div style="position:absolute; top:0; left:0; width:100%; height:10px; background:#fbcfe8; clip-path:polygon(0 0, 100% 0, 50% 100%);"></div></div>';
+                } else {
+                    particle.innerText = emojiChar;
+                    particle.style.fontSize = (Math.random() * 2 + 1) + 'rem';
+                }
+                
                 particle.style.position = 'absolute';
-                particle.style.fontSize = (Math.random() * 2 + 1) + 'rem';
                 
                 // Start them at varied heights above the screen so they don't fall in a clump
                 particle.style.top = -(Math.random() * 300 + 50) + 'px';
@@ -598,7 +679,7 @@
 
         function scramblePuzzle() {
             puzzleActive = true;
-            instruction.innerText = "Oh no, it broke! Tap a piece next to the blank space to slide it.";
+            instruction.innerText = txtScrambled;
             instruction.style.display = 'block';
             gsap.fromTo(instruction, {opacity: 0, y:20}, {opacity: 1, y:0, duration:0.5});
             
@@ -674,7 +755,7 @@
             if (won) {
                 puzzleActive = false;
                 puzzleSolved = true;
-                instruction.innerText = "You fixed it!";
+                instruction.innerText = txtSolved;
                 
                 const board = document.getElementById('puzzle-board');
                 gsap.to(board, { borderColor: '#10b981', duration: 0.3, yoyo: true, repeat: 3 });

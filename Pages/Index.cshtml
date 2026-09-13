@@ -1,17 +1,19 @@
 @page
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Config
 @model IndexModel
 @{
-    ViewData["Title"] = "Waiting for the Moment";
+    ViewData["Title"] = Config["BirthdayConfig:IndexTitle"];
 }
 
 <div class="fullscreen-center" id="countdown-scene">
     <div class="glass-panel" style="padding: 3rem 4rem;">
-        <h2 class="mb-4">Something special is coming...</h2>
+        <h2 class="mb-4">@Config["BirthdayConfig:IndexHeading"]</h2>
         
-        <div id="countdown-timer" class="d-flex justify-content-center gap-4 mt-4" style="font-size: 2.5rem; font-weight: 800; text-shadow: 0 0 20px rgba(236,72,153,0.5);">
+        <div id="countdown-timer" class="d-flex justify-content-center flex-wrap gap-4 mt-4" style="font-size: 2.5rem; font-weight: 800; text-shadow: 0 0 20px rgba(236,72,153,0.5);">
             <div class="time-block d-flex flex-column align-items-center">
                 <span id="days">00</span>
-                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">Days</span>
+                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">@Config["BirthdayConfig:IndexDaysLabel"]</span>
             </div>
             <div class="time-block d-flex flex-column align-items-center">
                 <span>:</span>
@@ -19,7 +21,7 @@
             </div>
             <div class="time-block d-flex flex-column align-items-center">
                 <span id="hours">00</span>
-                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">Hours</span>
+                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">@Config["BirthdayConfig:IndexHoursLabel"]</span>
             </div>
             <div class="time-block d-flex flex-column align-items-center">
                 <span>:</span>
@@ -27,7 +29,7 @@
             </div>
             <div class="time-block d-flex flex-column align-items-center">
                 <span id="minutes">00</span>
-                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">Minutes</span>
+                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">@Config["BirthdayConfig:IndexMinutesLabel"]</span>
             </div>
             <div class="time-block d-flex flex-column align-items-center">
                 <span>:</span>
@@ -35,12 +37,12 @@
             </div>
             <div class="time-block d-flex flex-column align-items-center">
                 <span id="seconds">00</span>
-                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">Seconds</span>
+                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">@Config["BirthdayConfig:IndexSecondsLabel"]</span>
             </div>
         </div>
 
         <div id="action-container" class="mt-5" style="display: none; opacity: 0;">
-            <a href="/Wish" class="btn-premium">Begin Journey <i class="fa-solid fa-arrow-right ms-2"></i></a>
+            <a href="/Wish" class="btn-premium">@Config["BirthdayConfig:IndexButtonText"] <i class="fa-solid fa-arrow-right ms-2"></i></a>
         </div>
     </div>
 </div>

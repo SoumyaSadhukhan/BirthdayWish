@@ -1,7 +1,9 @@
 @page
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Config
 @model CakeModel
 @{
-    ViewData["Title"] = "Time for Cake!";
+    ViewData["Title"] = Config["BirthdayConfig:CakeTitle"];
 }
 
 <style>
@@ -68,9 +70,17 @@
         background: #fff;
         box-shadow: 0 0 10px #fff;
         transform: scaleY(0);
+
         transform-origin: top;
         z-index: 10;
         pointer-events: none;
+    }
+    
+    @@media (max-width: 400px) {
+        .cake-container {
+            transform: scale(0.8);
+            margin: -30px auto;
+        }
     }
 </style>
 
@@ -78,27 +88,32 @@
 
 <div class="fullscreen-center" id="cake-scene">
     <div class="glass-panel text-center" style="padding: 4rem; max-width: 800px; z-index: 10;">
-        <h2 class="mb-5">Make a wish and blow out the candle!</h2>
+        <h2 class="mb-5">@Config["BirthdayConfig:CakeHeading"]</h2>
         
         <div class="cake-container" id="the-cake">
             <div class="flame" id="flame"></div>
             <div class="candle"></div>
+
             <div class="cake-layer layer-3"></div>
             <div class="cake-layer layer-2"></div>
             <div class="cake-layer layer-1"></div>
             <div class="knife-line" id="knife-line"></div>
         </div>
         
-        <p class="mt-4 text-muted" id="instruction-text">Tap to blow the candle</p>
+        <p class="mt-4 text-muted" id="instruction-text">@Config["BirthdayConfig:CakeInstructionInitial"]</p>
         
         <div id="action-container" class="mt-4" style="display: none; opacity: 0;">
-            <a href="/Gift" class="btn-premium">Open Your Gift <i class="fa-solid fa-gift ms-2"></i></a>
+            <a href="/Gift" class="btn-premium">@Config["BirthdayConfig:CakeButtonText"] <i class="fa-solid fa-gift ms-2"></i></a>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script>
+        const txtCut = "@Html.Raw(Config["BirthdayConfig:CakeInstructionCut"])";
+        const txtMic = "@Html.Raw(Config["BirthdayConfig:CakeInstructionMic"])";
+        const txtInitial = "@Html.Raw(Config["BirthdayConfig:CakeInstructionInitial"])";
+        
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
         let tapCount = 0;
@@ -116,7 +131,7 @@
             flame.style.animation = 'none'; // Stop CSS animation overriding GSAP
             gsap.to(flame, { scale: 0, opacity: 0, duration: 0.3, onComplete: () => flame.style.display = 'none' });
             
-            instructionText.innerText = "Now tap to cut the cake!";
+            instructionText.innerHTML = txtCut;
             gsap.fromTo(instructionText, { scale: 1.2, color: '#ec4899' }, { scale: 1, color: '#cbd5e1', duration: 0.5 });
             tapCount++;
             
@@ -168,7 +183,7 @@
                 const bufferLength = analyser.frequencyBinCount;
                 const dataArray = new Uint8Array(bufferLength);
                 
-                instructionText.innerHTML = 'Blow into your microphone<br><small class="text-muted">(or just tap)</small>';
+                instructionText.innerHTML = txtMic;
                 
                 function detectBlow() {
                     if (tapCount !== 0) return;
@@ -192,7 +207,7 @@
                 detectBlow();
             } catch (err) {
                 console.log("Mic access denied or unavailable.");
-                instructionText.innerText = "Tap the cake to blow the candle!";
+                instructionText.innerHTML = txtInitial;
             }
         }
         
