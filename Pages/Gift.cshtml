@@ -437,6 +437,8 @@
         const isPuzzleMode = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<bool>("BirthdayConfig:IsPuzzle", true)));
         const isLetterMode = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<bool>("BirthdayConfig:IsLetter", true)));
         const isGalleryMode = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<bool>("BirthdayConfig:IsGallery", true)));
+        const puzzleRows = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<int>("BirthdayConfig:PuzzleGridRows", 4)));
+        const puzzleCols = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<int>("BirthdayConfig:PuzzleGridCols", 4)));
         
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
@@ -1058,7 +1060,7 @@
             }
         }
         
-        let blankIndex = 15; // The empty spot
+        let blankIndex = (puzzleRows * puzzleCols) - 1; // The empty spot
         
         function initPuzzle() {
             if (allImages.length > 0) {
@@ -1068,20 +1070,25 @@
             
             const board = document.getElementById('puzzle-board');
             board.innerHTML = ''; // clear
-            board.style.pointerEvents = 'auto'; // FIX: allow pieces to be clicked!
+            board.style.pointerEvents = 'auto'; // allow pieces to be clicked!
             puzzlePieces.length = 0;
             
-            // Create 15 pieces (leave 16th slot blank)
-            for (let i = 0; i < 15; i++) {
-                const row = Math.floor(i / 4);
-                const col = i % 4;
+            const pieceW = 320 / puzzleCols;
+            const pieceH = 320 / puzzleRows;
+            const totalPieces = (puzzleRows * puzzleCols) - 1;
+            
+            for (let i = 0; i < totalPieces; i++) {
+                const row = Math.floor(i / puzzleCols);
+                const col = i % puzzleCols;
                 
                 const piece = document.createElement('div');
                 piece.className = 'puzzle-piece';
+                piece.style.width = pieceW + 'px';
+                piece.style.height = pieceH + 'px';
                 piece.style.backgroundImage = `url('${puzzleImage}')`;
                 
-                const correctX = col * 80;
-                const correctY = row * 80;
+                const correctX = col * pieceW;
+                const correctY = row * pieceH;
                 
                 piece.style.backgroundPosition = `-${correctX}px -${correctY}px`;
                 
@@ -1101,7 +1108,7 @@
                     });
                 });
             }
-            blankIndex = 15;
+            blankIndex = (puzzleRows * puzzleCols) - 1;
         }
 
         function scramblePuzzle() {
@@ -1110,13 +1117,14 @@
             instruction.style.display = 'block';
             gsap.fromTo(instruction, {opacity: 0, y:20}, {opacity: 1, y:0, duration:0.5});
             
-            // To ensure solvability, we make 200 random valid slides
+            const pieceW = 320 / puzzleCols;
+            const pieceH = 320 / puzzleRows;
+            
             let previousBlank = -1;
             let moves = 0;
             
             while (moves < 200) {
                 const validNeighbors = getValidNeighbors(blankIndex);
-                // Don't reverse the previous move immediately to ensure good shuffling
                 const possibleMoves = validNeighbors.filter(n => n !== previousBlank);
                 const moveToMake = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
                 
@@ -1131,23 +1139,23 @@
             }
             
             // Animate pieces to their scrambled positions
-            puzzlePieces.forEach((piece, i) => {
+            puzzlePieces.forEach((piece) => {
                 const idx = parseInt(piece.dataset.currentIndex);
-                const col = idx % 4;
-                const row = Math.floor(idx / 4);
-                gsap.to(piece, { x: col * 80, y: row * 80, duration: 0.8, ease: 'power2.out', delay: 0.5 + Math.random() * 0.2 });
+                const col = idx % puzzleCols;
+                const row = Math.floor(idx / puzzleCols);
+                gsap.to(piece, { x: col * pieceW, y: row * pieceH, duration: 0.8, ease: 'power2.out', delay: 0.5 + Math.random() * 0.2 });
             });
         }
         
         function getValidNeighbors(index) {
             const neighbors = [];
-            const col = index % 4;
-            const row = Math.floor(index / 4);
+            const col = index % puzzleCols;
+            const row = Math.floor(index / puzzleCols);
             
-            if (row > 0) neighbors.push(index - 4); // Up
-            if (row < 3) neighbors.push(index + 4); // Down
+            if (row > 0) neighbors.push(index - puzzleCols); // Up
+            if (row < puzzleRows - 1) neighbors.push(index + puzzleCols); // Down
             if (col > 0) neighbors.push(index - 1); // Left
-            if (col < 3) neighbors.push(index + 1); // Right
+            if (col < puzzleCols - 1) neighbors.push(index + 1); // Right
             
             return neighbors;
         }
@@ -1168,14 +1176,16 @@
             
             if (validNeighbors.includes(pieceIndex)) {
                 // It is adjacent to the blank space! Swap them.
+                const pieceW = 320 / puzzleCols;
+                const pieceH = 320 / puzzleRows;
                 const newBlank = pieceIndex;
                 piece.dataset.currentIndex = blankIndex;
                 blankIndex = newBlank;
                 
-                const newCol = piece.dataset.currentIndex % 4;
-                const newRow = Math.floor(piece.dataset.currentIndex / 4);
+                const newCol = piece.dataset.currentIndex % puzzleCols;
+                const newRow = Math.floor(piece.dataset.currentIndex / puzzleCols);
                 
-                gsap.to(piece, { x: newCol * 80, y: newRow * 80, duration: 0.2 });
+                gsap.to(piece, { x: newCol * pieceW, y: newRow * pieceH, duration: 0.2 });
                 
                 setTimeout(checkPuzzleWin, 250);
             }
@@ -1200,14 +1210,21 @@
                     gsap.to(p, { borderColor: 'transparent', duration: 0.5 });
                 });
                 
-                // Fill the blank space with the missing 16th piece!
+                const pieceW = 320 / puzzleCols;
+                const pieceH = 320 / puzzleRows;
+                const lastRow = puzzleRows - 1;
+                const lastCol = puzzleCols - 1;
+                
+                // Fill the blank space with the missing last piece!
                 const missingPiece = document.createElement('div');
                 missingPiece.className = 'puzzle-piece';
+                missingPiece.style.width = pieceW + 'px';
+                missingPiece.style.height = pieceH + 'px';
                 missingPiece.style.backgroundImage = `url('${puzzleImage}')`;
-                missingPiece.style.backgroundPosition = `-240px -240px`;
+                missingPiece.style.backgroundPosition = `-${lastCol * pieceW}px -${lastRow * pieceH}px`;
                 missingPiece.style.opacity = 0;
                 missingPiece.style.borderColor = 'transparent';
-                gsap.set(missingPiece, { x: 240, y: 240 });
+                gsap.set(missingPiece, { x: lastCol * pieceW, y: lastRow * pieceH });
                 board.appendChild(missingPiece);
                 gsap.to(missingPiece, { opacity: 1, duration: 1 });
                 
