@@ -295,9 +295,46 @@
             font-size: 2.2rem !important;
         }
     }
+
+    .butterfly-wing {
+        display: inline-block;
+        transform-origin: center;
+        animation: flapWings 0.18s infinite ease-in-out alternate;
+    }
+    @@keyframes flapWings {
+        0% { transform: scaleX(1) rotate(0deg); }
+        100% { transform: scaleX(0.25) rotate(15deg); }
+    }
+
+    .drone-tap-prompt {
+        position: fixed;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10001;
+        color: rgba(255, 255, 255, 0.9);
+        font-family: 'Outfit', sans-serif;
+        font-size: 1rem;
+        letter-spacing: 1px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        padding: 8px 22px;
+        border-radius: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        pointer-events: none;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        animation: pulsePrompt 2s infinite ease-in-out;
+    }
+
+    @@keyframes pulsePrompt {
+        0%, 100% { opacity: 0.7; transform: translateX(-50%) scale(1); }
+        50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+    }
 </style>
 
 <div id="celebration-container" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; overflow: hidden; z-index: 9999;"></div>
+<div id="drone-show-container" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; overflow: hidden; z-index: 10000;"></div>
+<canvas id="text-canvas" style="display: none;"></canvas>
 
 <div class="fullscreen-center" id="gift-scene">
     <div class="glass-panel text-center" style="padding: 4rem; max-width: 800px; z-index: 10; width: 100%;">
@@ -447,6 +484,10 @@
 
         // Listen for taps anywhere on the screen
         document.body.addEventListener('click', (e) => {
+            if (isDroneShowActive) {
+                stopDroneShow();
+                return;
+            }
             if (isAnimating) return;
             
             if (!isOpened) {
@@ -489,7 +530,7 @@
 
             } else {
                 // Already opened, cycle to next item
-                if (currentItem > 0 && currentItem <= 5) {
+                if (currentItem > 0 && currentItem <= 6) {
                     // Check if we are on the letter (item 4) and it hasn't been opened yet
                     if (currentItem === 4 && !letterOpened) {
                         if (!isLetterMode) {
@@ -545,10 +586,7 @@
                             const tl = gsap.timeline();
                             flyAwayItem(6, tl);
                             
-                            instruction.style.display = 'none';
-                            const finalMsg = document.getElementById('final-message');
-                            finalMsg.style.display = 'block';
-                            tl.to(finalMsg, { opacity: 1, y: -20, duration: 1 }, "-=0.2");
+                            triggerDroneShow();
                             return;
                         }
                         if (!puzzleSolved) {
@@ -705,6 +743,320 @@
                 ease: 'power2.in'
             });
         }
+
+        const droneArrangeDurationSec = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:DroneArrangeDurationSec", 1.5)));
+        const droneShowtimeSec = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:DroneShowtimeSec", 3.0)));
+        const droneSpreadDurationSec = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:DroneSpreadDurationSec", 2.0)));
+        const droneFlutterDurationSec = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:DroneFlutterDurationSec", 2.5)));
+
+        let isDroneShowActive = false;
+        let droneTimeoutIds = [];
+        let activeDrones = [];
+
+        const rawDronePhrases = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            Config.GetSection("BirthdayConfig:DronePhrases").GetChildren().Select(c => c.Value).ToArray()
+        ));
+        const dronePhrases = (rawDronePhrases && rawDronePhrases.length > 0) ? rawDronePhrases : [
+            "HAPPY BIRTHDAY\nPIU",
+            "MANY MANY HAPPY\nRETURNS OF THE DAY",
+            "MAY ALL YOUR DREAMS\nCOME TRUE",
+            "ALWAYS STAY HAPPY\nAND SMILE"
+        ];
+
+        function addDroneTimeout(fn, delay) {
+            const id = setTimeout(() => {
+                if (isDroneShowActive) fn();
+            }, delay);
+            droneTimeoutIds.push(id);
+            return id;
+        }
+
+        function clearAllDroneTimeouts() {
+            droneTimeoutIds.forEach(id => clearTimeout(id));
+            droneTimeoutIds = [];
+        }
+
+        function triggerDroneShow() {
+            instruction.style.display = 'none';
+            isDroneShowActive = true;
+
+            // 1. Remove/fade out the surprise gift box container in an animated way
+            const giftScene = document.getElementById('gift-scene');
+            if (giftScene) {
+                gsap.to(giftScene, {
+                    opacity: 0,
+                    scale: 0.6,
+                    duration: 1.2,
+                    ease: 'power2.in',
+                    onComplete: () => {
+                        giftScene.style.display = 'none';
+                    }
+                });
+            }
+
+            // 2. Add tap prompt at the bottom
+            let promptElem = document.getElementById('drone-tap-prompt');
+            if (!promptElem) {
+                promptElem = document.createElement('div');
+                promptElem.id = 'drone-tap-prompt';
+                promptElem.className = 'drone-tap-prompt';
+                promptElem.innerText = '✨ Tap anywhere to see final message ✨';
+                document.body.appendChild(promptElem);
+            }
+
+            startDroneShowLoop();
+        }
+
+        function formatPhraseForScreen(rawPhrase) {
+            const isMobile = window.innerWidth <= 650;
+            const text = rawPhrase.replace(/\r/g, '').replace(/\n/g, ' ');
+            const words = text.split(' ').filter(w => w.trim().length > 0);
+            
+            // Max 7 chars per line on mobile for huge readable words! Max 12 on desktop.
+            const maxCharsPerLine = isMobile ? 7 : 12;
+            const lines = [];
+            let currentLine = '';
+            
+            words.forEach(w => {
+                if ((currentLine + ' ' + w).trim().length <= maxCharsPerLine) {
+                    currentLine = (currentLine + ' ' + w).trim();
+                } else {
+                    if (currentLine) lines.push(currentLine);
+                    currentLine = w;
+                }
+            });
+            if (currentLine) lines.push(currentLine);
+            return lines;
+        }
+
+        function getTargetCoordsForPhrase(phraseText, droneCount) {
+            const canvas = document.getElementById('text-canvas');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            
+            const screenW = window.innerWidth;
+            const screenH = window.innerHeight;
+            const isMobile = screenW <= 650;
+            
+            const w = Math.min(screenW * 0.94, isMobile ? 450 : 1100);
+            const h = Math.min(screenH * 0.80, isMobile ? 550 : 750);
+            canvas.width = w;
+            canvas.height = h;
+            
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, w, h);
+            
+            const lines = formatPhraseForScreen(phraseText);
+            const lineCount = lines.length;
+            const maxLineLen = Math.max(...lines.map(l => l.length), 3);
+            
+            let fontByWidth = Math.floor((w * 0.88) / (maxLineLen * 0.65));
+            let fontByHeight = Math.floor((h * 0.82) / (lineCount * 1.3));
+            let fontSize = Math.min(fontByWidth, fontByHeight);
+            fontSize = Math.max(isMobile ? 36 : 60, Math.min(fontSize, isMobile ? 65 : 110));
+            
+            ctx.font = `bold ${fontSize}px "Outfit", system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = 'white';
+            
+            const startY = (h / 2) - ((lineCount - 1) * fontSize * 0.65);
+            
+            lines.forEach((line, idx) => {
+                ctx.fillText(line.trim(), w / 2, startY + (idx * fontSize * 1.25));
+            });
+            
+            const imgData = ctx.getImageData(0, 0, w, h).data;
+            const rawCoords = [];
+            const step = isMobile ? 5 : 7;
+            
+            for (let y = 0; y < h; y += step) {
+                for (let x = 0; x < w; x += step) {
+                    const idx = (y * w + x) * 4;
+                    if (imgData[idx] > 128) {
+                        const screenX = (screenW / 2) - (w / 2) + x;
+                        const screenY = (screenH / 2) - (h / 2) + y;
+                        rawCoords.push({ x: screenX, y: screenY });
+                    }
+                }
+            }
+            
+            const finalCoords = [];
+            if (rawCoords.length > 0) {
+                const totalSamples = rawCoords.length;
+                for (let i = 0; i < droneCount; i++) {
+                    const sampleIndex = Math.floor((i / droneCount) * totalSamples) % totalSamples;
+                    const sample = rawCoords[sampleIndex];
+                    finalCoords.push({
+                        x: sample.x,
+                        y: sample.y
+                    });
+                }
+            } else {
+                for (let i = 0; i < droneCount; i++) {
+                    finalCoords.push({
+                        x: (screenW / 2) + (Math.random() - 0.5) * w * 0.8,
+                        y: (screenH / 2) + (Math.random() - 0.5) * h * 0.8
+                    });
+                }
+            }
+            return finalCoords;
+        }
+
+        function startDroneShowLoop() {
+            const container = document.getElementById('drone-show-container');
+            container.innerHTML = '';
+            activeDrones = [];
+            clearAllDroneTimeouts();
+            
+            const isMobile = window.innerWidth <= 650;
+            const numDrones = isMobile ? 260 : 360;
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            for (let i = 0; i < numDrones; i++) {
+                const drone = document.createElement('div');
+                drone.style.position = 'absolute';
+                drone.style.left = '0';
+                drone.style.top = '0';
+                drone.style.fontSize = isMobile ? '1.15rem' : '1.35rem';
+                drone.style.filter = 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7))';
+                drone.style.opacity = '0';
+                drone.style.transform = 'translate(-50%, -50%)';
+                
+                const wing = document.createElement('span');
+                wing.className = 'butterfly-wing';
+                wing.innerText = '🦋';
+                wing.style.animationDuration = (0.14 + Math.random() * 0.1) + 's';
+                drone.appendChild(wing);
+                
+                gsap.set(drone, { x: centerX, y: centerY });
+                container.appendChild(drone);
+                activeDrones.push(drone);
+                
+                // Full screen 100vw and 100vh initial flight
+                const flutterX = Math.random() * window.innerWidth;
+                const flutterY = Math.random() * window.innerHeight;
+                
+                gsap.to(drone, {
+                    x: flutterX,
+                    y: flutterY,
+                    rotation: (Math.random() - 0.5) * 360,
+                    opacity: 1,
+                    duration: 1.2 + Math.random() * 0.8,
+                    ease: 'power2.out',
+                    onComplete: () => {
+                        if (!isDroneShowActive) return;
+                        gsap.to(drone, {
+                            x: `+=${(Math.random() - 0.5) * 180}`,
+                            y: `+=${(Math.random() - 0.5) * 180}`,
+                            rotation: `+=${(Math.random() - 0.5) * 120}`,
+                            duration: 1.5 + Math.random() * 1.5,
+                            repeat: -1,
+                            yoyo: true,
+                            ease: 'sine.inOut'
+                        });
+                    }
+                });
+            }
+
+            let phraseIndex = 0;
+
+            function runPhraseCycle() {
+                if (!isDroneShowActive) return;
+                
+                const phraseText = dronePhrases[phraseIndex % dronePhrases.length];
+                const targetCoords = getTargetCoordsForPhrase(phraseText, activeDrones.length);
+                
+                // 1. Arrange: Drones fly smoothly to letter coordinates and STOP COMPLETELY STILL!
+                activeDrones.forEach((drone, i) => {
+                    gsap.killTweensOf(drone);
+                    const target = targetCoords[i];
+                    gsap.to(drone, {
+                        x: target.x,
+                        y: target.y,
+                        rotation: 0,
+                        duration: droneArrangeDurationSec,
+                        ease: 'power3.out'
+                    });
+                });
+
+                // Total hold time = arrange time + showtime (holding still)
+                const holdDelayMs = (droneArrangeDurationSec + droneShowtimeSec) * 1000;
+
+                // 2. Spread: After showtime, scatter butterflies across 100vw and 100vh
+                addDroneTimeout(() => {
+                    if (!isDroneShowActive) return;
+                    
+                    activeDrones.forEach((drone) => {
+                        gsap.killTweensOf(drone);
+                        gsap.to(drone, {
+                            x: Math.random() * window.innerWidth,
+                            y: Math.random() * window.innerHeight,
+                            rotation: (Math.random() - 0.5) * 180,
+                            duration: droneSpreadDurationSec,
+                            ease: 'power2.inOut'
+                        });
+                    });
+
+                    // 3. Next line: Advance to next phrase after spread duration
+                    addDroneTimeout(() => {
+                        if (!isDroneShowActive) return;
+                        phraseIndex++;
+                        runPhraseCycle();
+                    }, droneSpreadDurationSec * 1000);
+
+                }, holdDelayMs);
+            }
+
+            // Start first phrase cycle after initial flutter duration
+            addDroneTimeout(runPhraseCycle, droneFlutterDurationSec * 1000);
+        }
+
+        function stopDroneShow() {
+            if (!isDroneShowActive) return;
+            isDroneShowActive = false;
+            clearAllDroneTimeouts();
+            
+            const promptElem = document.getElementById('drone-tap-prompt');
+            if (promptElem) promptElem.remove();
+            
+            // Fly all butterflies away into the sky
+            activeDrones.forEach((drone) => {
+                gsap.killTweensOf(drone);
+                gsap.to(drone, {
+                    x: `+=${(Math.random() - 0.5) * window.innerWidth}`,
+                    y: -400,
+                    opacity: 0,
+                    duration: 1.5 + Math.random(),
+                    ease: 'power2.in',
+                    onComplete: () => drone.remove()
+                });
+            });
+            activeDrones = [];
+
+            // Reveal final message card cleanly
+            const finalMsg = document.getElementById('final-message');
+            if (finalMsg) {
+                document.body.appendChild(finalMsg);
+                finalMsg.style.position = 'fixed';
+                finalMsg.style.top = '50%';
+                finalMsg.style.left = '50%';
+                finalMsg.style.transform = 'translate(-50%, -50%)';
+                finalMsg.style.zIndex = '10005';
+                finalMsg.style.textAlign = 'center';
+                finalMsg.style.width = '90%';
+                finalMsg.style.maxWidth = '500px';
+                finalMsg.style.padding = '2rem';
+                finalMsg.style.background = 'rgba(15, 23, 42, 0.88)';
+                finalMsg.style.backdropFilter = 'blur(16px)';
+                finalMsg.style.borderRadius = '20px';
+                finalMsg.style.border = '1px solid rgba(251, 191, 36, 0.3)';
+                finalMsg.style.boxShadow = '0 20px 50px rgba(0,0,0,0.5)';
+                finalMsg.style.display = 'block';
+                gsap.fromTo(finalMsg, { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 1.2, ease: 'back.out(1.5)' });
+            }
+        }
         
         let blankIndex = 15; // The empty spot
         
@@ -801,6 +1153,14 @@
         }
 
         function handlePieceSlide(piece) {
+            if (!isPuzzleMode && !puzzleSolved) {
+                puzzleActive = false;
+                puzzleSolved = true;
+                const tl = gsap.timeline();
+                flyAwayItem(6, tl);
+                triggerDroneShow();
+                return;
+            }
             if (!puzzleActive) return;
             
             const pieceIndex = parseInt(piece.dataset.currentIndex);
@@ -857,10 +1217,7 @@
                     const tl = gsap.timeline();
                     flyAwayItem(6, tl);
                     
-                    instruction.style.display = 'none';
-                    const finalMsg = document.getElementById('final-message');
-                    finalMsg.style.display = 'block';
-                    tl.to(finalMsg, { opacity: 1, y: -20, duration: 1 }, "-=0.2");
+                    triggerDroneShow();
                 }, 2000);
             }
         }
