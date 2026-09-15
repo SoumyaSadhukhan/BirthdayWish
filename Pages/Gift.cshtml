@@ -397,6 +397,9 @@
         const txtNext = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:GiftInstructionNext"]));
         const txtScrambled = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:PuzzleInstructionScrambled"]));
         const txtSolved = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:PuzzleInstructionSolved"]));
+        const isPuzzleMode = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<bool>("BirthdayConfig:IsPuzzle", true)));
+        const isLetterMode = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<bool>("BirthdayConfig:IsLetter", true)));
+        const isGalleryMode = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<bool>("BirthdayConfig:IsGallery", true)));
         
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
@@ -489,48 +492,65 @@
                 if (currentItem > 0 && currentItem <= 5) {
                     // Check if we are on the letter (item 4) and it hasn't been opened yet
                     if (currentItem === 4 && !letterOpened) {
-                        isAnimating = true;
-                        letterOpened = true;
-                        
-                        const tl = gsap.timeline({ onComplete: () => isAnimating = false });
-                        
-                        // Open envelope flap and break wax seal
-                        tl.to('#wax-seal', { opacity: 0, scale: 0, duration: 0.3 }, 0);
-                        tl.to('#envelope-flap', { rotationX: 180, duration: 0.5, ease: 'power2.inOut', zIndex: 1 }, 0);
-                        
-                        const isMobile = window.innerWidth <= 400;
-                        
-                        // 1. Slide letter straight UP out of the envelope first (keep it narrow so it doesn't clip the sides)
-                        tl.to('#letter-paper', {
-                            y: -95, 
-                            duration: 0.4, 
-                            ease: 'power2.out'
-                        }, "+=0.1");
-                        
-                        // 2. Once it's out, pop it in FRONT of the envelope
-                        tl.set('#letter-paper', { zIndex: 10 });
-                        
-                        // 3. Expand and scale the letter to reading size
-                        tl.to('#letter-paper', {
-                            y: isMobile ? -30 : -50,
-                            x: isMobile ? -50 : -80, // Center horizontally
-                            scale: 1, 
-                            width: isMobile ? '240px' : '300px',
-                            height: 'auto',
-                            minHeight: '200px',
-                            padding: '20px',
-                            fontSize: isMobile ? '1.2rem' : '1.4rem',
-                            color: '#1f2937',
-                            boxShadow: '0 20px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(0,0,0,0.05)',
-                            duration: 0.6, 
-                            ease: 'power2.out'
-                        });
-                        
-                        return; // Stop here, so we don't fly it away yet
+                        if (!isLetterMode) {
+                            letterOpened = true;
+                        } else {
+                            isAnimating = true;
+                            letterOpened = true;
+                            
+                            const tl = gsap.timeline({ onComplete: () => isAnimating = false });
+                            
+                            // Open envelope flap and break wax seal
+                            tl.to('#wax-seal', { opacity: 0, scale: 0, duration: 0.3 }, 0);
+                            tl.to('#envelope-flap', { rotationX: 180, duration: 0.5, ease: 'power2.inOut', zIndex: 1 }, 0);
+                            
+                            const isMobile = window.innerWidth <= 400;
+                            
+                            // 1. Slide letter straight UP out of the envelope first (keep it narrow so it doesn't clip the sides)
+                            tl.to('#letter-paper', {
+                                y: -95, 
+                                duration: 0.4, 
+                                ease: 'power2.out'
+                            }, "+=0.1");
+                            
+                            // 2. Once it's out, pop it in FRONT of the envelope
+                            tl.set('#letter-paper', { zIndex: 10 });
+                            
+                            // 3. Expand and scale the letter to reading size
+                            tl.to('#letter-paper', {
+                                y: isMobile ? -30 : -50,
+                                x: isMobile ? -50 : -80, // Center horizontally
+                                scale: 1, 
+                                width: isMobile ? '240px' : '300px',
+                                height: 'auto',
+                                minHeight: '200px',
+                                padding: '20px',
+                                fontSize: isMobile ? '1.2rem' : '1.4rem',
+                                color: '#1f2937',
+                                boxShadow: '0 20px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(0,0,0,0.05)',
+                                duration: 0.6, 
+                                ease: 'power2.out'
+                            });
+                            
+                            return; // Stop here, so we don't fly it away yet
+                        }
                     }
 
                     // If puzzle is active and unsolved, block the body tap from flying it away
                     if (currentItem === 6) {
+                        if (!isPuzzleMode && !puzzleSolved) {
+                            puzzleActive = false;
+                            puzzleSolved = true;
+                            
+                            const tl = gsap.timeline();
+                            flyAwayItem(6, tl);
+                            
+                            instruction.style.display = 'none';
+                            const finalMsg = document.getElementById('final-message');
+                            finalMsg.style.display = 'block';
+                            tl.to(finalMsg, { opacity: 1, y: -20, duration: 1 }, "-=0.2");
+                            return;
+                        }
                         if (!puzzleSolved) {
                             instruction.innerText = "Tap two pieces to swap them!";
                             return;
@@ -539,25 +559,29 @@
 
                     // Check if we are on the gallery (item 5) and have photos left to swipe
                     if (currentItem === 5 && photoIndex < totalPhotos) {
-                        isAnimating = true;
-                        
-                        const cards = document.querySelectorAll('.photo-card');
-                        if (cards.length > 0 && photoIndex < cards.length) {
-                            const currentCard = cards[photoIndex];
+                        if (!isGalleryMode) {
+                            photoIndex = totalPhotos;
+                        } else {
+                            isAnimating = true;
                             
-                            // Swipe the photo away (throw it to the side)
-                            gsap.to(currentCard, {
-                                x: (Math.random() > 0.5 ? 200 : -200), // Randomly throw left or right
-                                y: -200, 
-                                rotation: (Math.random() - 0.5) * 90, 
-                                opacity: 0, 
-                                duration: 0.6, 
-                                ease: 'power2.in',
-                                onComplete: () => isAnimating = false
-                            });
-                            
-                            photoIndex++;
-                            return; // Stop here, wait for next tap
+                            const cards = document.querySelectorAll('.photo-card');
+                            if (cards.length > 0 && photoIndex < cards.length) {
+                                const currentCard = cards[photoIndex];
+                                
+                                // Swipe the photo away (throw it to the side)
+                                gsap.to(currentCard, {
+                                    x: (Math.random() > 0.5 ? 200 : -200), // Randomly throw left or right
+                                    y: -200, 
+                                    rotation: (Math.random() - 0.5) * 90, 
+                                    opacity: 0, 
+                                    duration: 0.6, 
+                                    ease: 'power2.in',
+                                    onComplete: () => isAnimating = false
+                                });
+                                
+                                photoIndex++;
+                                return; // Stop here, wait for next tap
+                            }
                         }
                     }
 
