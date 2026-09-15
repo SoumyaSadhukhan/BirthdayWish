@@ -4,42 +4,106 @@
 @model CakeModel
 @{
     ViewData["Title"] = Config["BirthdayConfig:CakeTitle"];
+    int currentAge = 0;
+    if (DateTime.TryParse(Config["BirthdayConfig:Birthdate"], out DateTime birthdate))
+    {
+        var today = DateTime.Today;
+        currentAge = today.Year - birthdate.Year;
+        if (birthdate.Date > today.AddYears(-currentAge)) currentAge--;
+    }
 }
 
 <style>
     .cake-container {
         position: relative;
         width: 300px;
-        height: 300px;
-        margin: 0 auto;
+        height: 340px;
+        margin: 20px auto 40px auto; /* More space above and below to fix overlap */
         cursor: pointer;
     }
-    
+    .cake-container.ready-to-cut {
+        cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" style="font-size: 24px;"><text y="24">🔪</text></svg>') 0 24, auto;
+    }
     .cake-layer {
         position: absolute;
         bottom: 0;
         left: 50%;
         transform: translateX(-50%);
-        background: #fdf2f8; /* very light pink */
-        border-radius: 10px;
-        box-shadow: inset 0 -10px 20px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.2);
-        border: 2px solid #fbcfe8;
+        border-radius: 12px;
+        box-shadow: inset 0 -10px 20px rgba(0,0,0,0.15), 0 10px 15px rgba(0,0,0,0.3);
     }
     
-    .layer-1 { width: 250px; height: 100px; bottom: 20px; z-index: 1; }
-    .layer-2 { width: 200px; height: 80px; bottom: 120px; z-index: 2; background: #fce7f3; }
-    .layer-3 { width: 150px; height: 70px; bottom: 200px; z-index: 3; }
+    /* White Scalloped Icing */
+    .cake-layer::after {
+        content: '';
+        position: absolute;
+        top: -2px; 
+        left: -2px;
+        width: calc(100% + 4px);
+        height: 25px;
+        background: #fff;
+        border-radius: 12px 12px 0 0;
+        -webkit-mask-image: radial-gradient(circle at 10px 25px, transparent 10px, black 10.5px);
+        mask-image: radial-gradient(circle at 10px 25px, transparent 10px, black 10.5px);
+        -webkit-mask-size: 20px 25px;
+        mask-size: 20px 25px;
+    }
+    
+    /* Golden Pearls at bottom */
+    .cake-layer::before {
+        content: '';
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 100%;
+        height: 10px;
+        background-image: radial-gradient(circle, #fde047 4px, transparent 5px);
+        background-size: 15px 10px;
+        z-index: 10;
+    }
+    
+    /* Rapunzel Purple */
+    .layer-1 { 
+        width: 260px; 
+        height: 100px; 
+        bottom: 20px; 
+        z-index: 1; 
+        background: linear-gradient(to right, #d8b4e2, #c084d1, #d8b4e2); 
+        border: 2px solid #a361b5;
+    }
+    
+    /* Cinderella Blue */
+    .layer-2 { 
+        width: 210px; 
+        height: 80px; 
+        bottom: 120px; 
+        z-index: 2; 
+        background: linear-gradient(to right, #bce0fd, #85c4f2, #bce0fd); 
+        border: 2px solid #5daeea;
+    }
+    
+    /* Aurora Pink */
+    .layer-3 { 
+        width: 160px; 
+        height: 70px; 
+        bottom: 200px; 
+        z-index: 3; 
+        background: linear-gradient(to right, #ffc4d9, #ff9ebf, #ffc4d9); 
+        border: 2px solid #f2729a;
+    }
     
     .candle {
         position: absolute;
-        width: 10px;
-        height: 40px;
-        background: #fbbf24;
+        width: 14px;
+        height: 45px;
+        background: linear-gradient(to right, #fde047, #ca8a04, #fde047);
         bottom: 270px;
         left: 50%;
         transform: translateX(-50%);
         z-index: 4;
-        border-radius: 5px;
+        border-radius: 7px;
+        border: 1px solid #a16207;
+        box-shadow: 0 0 5px rgba(250, 204, 21, 0.5);
     }
     
     .flame {
@@ -47,7 +111,7 @@
         width: 16px;
         height: 24px;
         background: #fef08a;
-        bottom: 315px;
+        bottom: 320px;
         left: 50%;
         transform: translateX(-50%);
         border-radius: 50% 50% 20% 20%;
@@ -56,54 +120,53 @@
         animation: flicker 0.5s infinite alternate;
     }
     
-    @@keyframes flicker {
-        0% { transform: translateX(-50%) scale(1); opacity: 1; }
-        100% { transform: translateX(-50%) scale(1.1); opacity: 0.8; }
-    }
-    
-    .knife-line {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 50%;
-        width: 4px;
-        background: #fff;
-        box-shadow: 0 0 10px #fff;
-        transform: scaleY(0);
 
-        transform-origin: top;
-        z-index: 10;
-        pointer-events: none;
+    
+    #fraction-counter {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #ec4899;
+        margin-top: 1rem;
     }
     
     @@media (max-width: 400px) {
         .cake-container {
             transform: scale(0.8);
-            margin: -30px auto;
+            margin: 10px auto;
         }
     }
 </style>
 
 <div id="celebration-container" style="position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; overflow: hidden; z-index: 9999;"></div>
 
+<div id="live-age-container" style="display: none; opacity: 0; position: fixed; top: 20px; right: 20px; font-size: 1rem; color: #ec4899; background: rgba(255, 255, 255, 0.85); padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); z-index: 10000; text-align: right; border: 2px solid #ffc4d9; backdrop-filter: blur(5px);">
+    <div style="font-weight: bold; margin-bottom: 5px; font-size: 0.9rem;">@Config["BirthdayConfig:LiveCounterNote"]</div>
+    <div id="live-age-counter" style="font-family: monospace; font-size: 1.05rem; color: #334155; font-weight: bold; line-height: 1.4;"></div>
+</div>
+
 <div class="fullscreen-center" id="cake-scene">
-    <div class="glass-panel text-center" style="padding: 4rem; max-width: 800px; z-index: 10;">
+    <div class="glass-panel text-center" style="position: relative; padding: 4rem; max-width: 800px; z-index: 10;">
         <h2 class="mb-5">@Config["BirthdayConfig:CakeHeading"]</h2>
         
         <div class="cake-container" id="the-cake">
             <div class="flame" id="flame"></div>
-            <div class="candle"></div>
+            <div class="candle" id="main-candle"></div>
 
             <div class="cake-layer layer-3"></div>
-
             <div class="cake-layer layer-2"></div>
             <div class="cake-layer layer-1"></div>
-            <div class="knife-line" id="knife-line"></div>
+        </div>
+        
+        <div id="active-slice-container" style="display: none; position: absolute; top: 40%; left: 50%; margin-left: -100px; width: 200px; height: 250px; z-index: 50; cursor: pointer;">
         </div>
 
-        
         <p class="mt-4 text-muted" id="instruction-text">@Config["BirthdayConfig:CakeInstructionInitial"]</p>
         
+        <div id="animated-wishes" class="mt-5 mb-5" style="display: none; opacity: 0; font-size: 2.5rem; font-weight: bold; color: #ec4899; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); line-height: 1.2;">
+            @Config["BirthdayConfig:WishesMain"]<br/>
+            <span style="font-size: 1.5rem; color: #c026d3; display: inline-block; margin-top: 10px;">@Html.Raw(string.Format(Config["BirthdayConfig:WishesAgeText"], currentAge))</span>
+        </div>
+
         <div id="action-container" class="mt-4" style="display: none; opacity: 0;">
             <a href="/Gift" class="btn-premium">@Config["BirthdayConfig:CakeButtonText"] <i class="fa-solid fa-gift ms-2"></i></a>
         </div>
@@ -115,60 +178,181 @@
         const txtCut = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:CakeInstructionCut"]));
         const txtMic = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:CakeInstructionMic"]));
         const txtInitial = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:CakeInstructionInitial"]));
+        const txtBite = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:CakeInstructionBite"]));
+        const txtBiteMore = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:CakeInstructionBiteMore"]));
+        const balloonMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:BalloonMessage"]));
+        const dobStr = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:Birthdate"]));
         
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
-        let tapCount = 0;
+        let eatState = 'INITIAL';
+
+        
         const cake = document.getElementById('the-cake');
         const instructionText = document.getElementById('instruction-text');
         const colors = ['#ec4899', '#c026d3', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
         
         let audioContext;
         let isBlowing = false;
+        let popperInterval;
+
+        function firePartyPoppers() {
+            const container = document.getElementById('celebration-container');
+            for(let i=0; i<100; i++) {
+                const confetti = document.createElement('div');
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const isLeft = Math.random() > 0.5;
+                
+                confetti.style.position = 'absolute';
+                confetti.style.width = (Math.random() * 10 + 5) + 'px';
+                confetti.style.height = (Math.random() * 20 + 10) + 'px';
+                confetti.style.backgroundColor = color;
+                
+                confetti.style.bottom = '-10px';
+                confetti.style.left = isLeft ? '-10px' : 'calc(100% + 10px)';
+                confetti.style.opacity = '1';
+                
+                container.appendChild(confetti);
+                
+                const xDist = isLeft ? (Math.random() * 600 + 200) : -(Math.random() * 600 + 200);
+                const yDist = -(Math.random() * 500 + 300);
+
+                gsap.to(confetti, {
+                    y: yDist,
+                    x: xDist,
+                    rotationX: Math.random() * 720,
+                    rotationY: Math.random() * 720,
+                    rotationZ: Math.random() * 720,
+                    duration: Math.random() * 1 + 1,
+                    ease: 'power3.out',
+                    onComplete: () => {
+                        gsap.to(confetti, {
+                            y: window.innerHeight + 100,
+                            x: xDist + (isLeft ? Math.random() * 100 : -(Math.random() * 100)),
+                            duration: Math.random() * 2 + 2,
+                            ease: 'power1.in',
+                            onComplete: () => confetti.remove()
+                        });
+                    }
+                });
+            }
+        }
+
+
 
         function blowOutCandle() {
-            if (tapCount !== 0) return;
+            if (eatState !== 'INITIAL') return;
+            eatState = 'READY_TO_CUT';
+            cake.classList.add('ready-to-cut');
             
             const flame = document.getElementById('flame');
-            flame.style.animation = 'none'; // Stop CSS animation overriding GSAP
+            flame.style.animation = 'none'; 
             gsap.to(flame, { scale: 0, opacity: 0, duration: 0.3, onComplete: () => flame.style.display = 'none' });
+            gsap.to('#main-candle', { scale: 0, opacity: 0, duration: 0.3 }); // hide candle too
             
-            instructionText.innerHTML = txtCut;
+            instructionText.innerHTML = "Tap the cake to cut a slice!";
             gsap.fromTo(instructionText, { scale: 1.2, color: '#ec4899' }, { scale: 1, color: '#cbd5e1', duration: 0.5 });
-            tapCount++;
             
             if (audioContext && audioContext.state !== 'closed') {
                 audioContext.close();
             }
+            
+            firePartyPoppers();
+            popperInterval = setInterval(firePartyPoppers, 3000);
         }
         
+        let currentBite = 0;
+        function takeBite() {
+            const sliceContainer = document.getElementById('active-slice-container');
+            const slice = sliceContainer.querySelector('.cake-layer');
+            if (!slice) return;
+            
+            currentBite++;
+            if (currentBite <= 6) {
+                const rightX = 100 - (currentBite * 8.33);
+                gsap.to(slice, { 
+                    clipPath: `polygon(50% 0%, ${rightX}% 100%, 0% 100%)`, 
+                    duration: 0.3 
+                });
+                
+                gsap.fromTo(sliceContainer, 
+                    { rotation: -5 }, 
+                    { rotation: 0, duration: 0.3, ease: 'back.out(2)' }
+                );
+                
+                if (currentBite === 6) {
+                    gsap.to(sliceContainer, { scale: 0, opacity: 0, duration: 0.5, delay: 0.3, onComplete: () => {
+                        sliceContainer.style.display = 'none';
+                        instructionText.style.display = 'none';
+                    }});
+                } else if (currentBite === 1) {
+                    instructionText.innerHTML = txtBiteMore;
+                }
+            }
+        }
+
+        function cutSlice() {
+            eatState = 'CELEBRATING';
+            cake.classList.remove('ready-to-cut');
+            
+            const elementsToCut = document.querySelectorAll('#the-cake .cake-layer');
+            
+            elementsToCut.forEach(el => {
+                el.style.clipPath = 'polygon(0 0, 50% 0, 50% 100%, 0 100%)';
+                
+                const rightPart = el.cloneNode(true);
+                rightPart.style.clipPath = 'polygon(50% 0, 100% 0, 100% 100%, 50% 100%)';
+                rightPart.classList.add('right-half-part');
+                cake.appendChild(rightPart);
+            });
+            
+            gsap.to('#the-cake .cake-layer:not(.right-half-part)', { left: '35%', rotation: -5, duration: 1, ease: 'back.out(1.5)' });
+            gsap.to('.right-half-part', { left: '65%', rotation: 5, duration: 1, ease: 'back.out(1.5)' });
+            
+            const sliceContainer = document.getElementById('active-slice-container');
+            sliceContainer.innerHTML = '';
+            
+            const topLayer = document.querySelector('.cake-layer.layer-3');
+            if (topLayer) {
+                const slicePart = topLayer.cloneNode(true);
+                slicePart.style.clipPath = 'polygon(50% 0%, 100% 100%, 0% 100%)';
+                slicePart.style.width = '90px';
+                slicePart.style.height = '80px';
+                slicePart.style.left = '50%';
+                slicePart.style.bottom = '80px'; // Center it somewhat vertically in the container
+                slicePart.style.transform = 'translateX(-50%)';
+                sliceContainer.appendChild(slicePart);
+            }
+            
+            sliceContainer.style.display = 'block';
+            sliceContainer.onclick = takeBite;
+            
+            currentBite = 0;
+            gsap.fromTo(sliceContainer, 
+                { scale: 0, y: 150, opacity: 0, rotation: -20 },
+                { scale: 1.2, y: -50, opacity: 1, rotation: 0, duration: 0.8, ease: 'back.out(1.5)' }
+            );
+            
+            instructionText.innerHTML = txtBite;
+            instructionText.className = 'mt-4 fw-bold';
+            instructionText.style.color = '#f472b6';
+            instructionText.style.fontSize = '1.2rem';
+            gsap.fromTo(instructionText, { scale: 1.2, opacity: 0, y: 0 }, { scale: 1, opacity: 1, y: -20, duration: 0.5 });
+            
+            setTimeout(() => {
+                triggerCelebration();
+            }, 1000);
+        }
+
         cake.addEventListener('click', () => {
-            // Resume AudioContext if suspended (browser auto-play policy)
             if (audioContext && audioContext.state === 'suspended') {
                 audioContext.resume();
             }
 
-            if (tapCount === 0) {
+            if (eatState === 'INITIAL') {
                 blowOutCandle();
-            } else if (tapCount === 1) {
-                tapCount++;
-                
-                const tl = gsap.timeline();
-                tl.to('#knife-line', { scaleY: 1, duration: 0.5, ease: 'power2.in' })
-                  .to('#knife-line', { opacity: 0, duration: 0.2 })
-                  .to('.layer-1, .layer-2, .layer-3', { 
-                      x: (i) => i % 2 === 0 ? -20 : 20, 
-                      rotation: (i) => i % 2 === 0 ? -5 : 5,
-                      duration: 0.8,
-                      ease: 'back.out(1.5)'
-                  }, "-=0.2");
-                  
-                instructionText.style.display = 'none';
-                const actionContainer = document.getElementById('action-container');
-                actionContainer.style.display = 'block';
-                gsap.to(actionContainer, { opacity: 1, y: -10, duration: 1, delay: 1 });
-                
-                triggerCelebration();
+            } else if (eatState === 'READY_TO_CUT') {
+                cutSlice();
             }
         });
 
@@ -188,7 +372,7 @@
                 instructionText.innerHTML = txtMic;
                 
                 function detectBlow() {
-                    if (tapCount !== 0) return;
+                    if (eatState !== 'INITIAL') return;
                     
                     analyser.getByteFrequencyData(dataArray);
                     let sum = 0;
@@ -217,74 +401,118 @@
         setTimeout(initMicrophone, 1000);
 
         function triggerCelebration() {
+            const actionContainer = document.getElementById('action-container');
+            actionContainer.style.display = 'block';
+            gsap.fromTo(actionContainer, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1, delay: 1.5 });
+
             const container = document.getElementById('celebration-container');
             
-            // Create Balloons
-            for(let i=0; i<15; i++) {
-                setTimeout(() => {
-                    const balloon = document.createElement('div');
-                    const size = Math.random() * 40 + 40;
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-                    
-                    balloon.style.position = 'absolute';
-                    balloon.style.width = size + 'px';
-                    balloon.style.height = (size * 1.2) + 'px';
-                    balloon.style.backgroundColor = color;
-                    balloon.style.borderRadius = '50% 50% 50% 50% / 40% 40% 60% 60%';
-                    balloon.style.bottom = '-100px';
-                    balloon.style.left = Math.random() * 100 + '%';
-                    balloon.style.opacity = '0.8';
-                    balloon.style.boxShadow = 'inset -10px -10px 20px rgba(0,0,0,0.2)';
-                    
-                    const string = document.createElement('div');
-                    string.style.position = 'absolute';
-                    string.style.bottom = '-30px';
-                    string.style.left = '50%';
-                    string.style.width = '2px';
-                    string.style.height = '30px';
-                    string.style.backgroundColor = 'rgba(255,255,255,0.4)';
-                    balloon.appendChild(string);
-        
-                    container.appendChild(balloon);
-        
-                    gsap.to(balloon, {
-                        y: -(window.innerHeight + 200),
-                        x: (Math.random() - 0.5) * 300,
-                        rotation: (Math.random() - 0.5) * 60,
-                        duration: Math.random() * 4 + 4,
-                        ease: 'power1.out',
-                        onComplete: () => balloon.remove()
-                    });
-                }, i * 150);
+            // Show animated wishes
+            const wishes = document.getElementById('animated-wishes');
+            wishes.style.display = 'block';
+            gsap.fromTo(wishes, 
+                { scale: 0, opacity: 0, rotation: -15 }, 
+                { scale: 1, opacity: 1, rotation: 0, duration: 1.5, ease: 'elastic.out(1, 0.5)' }
+            );
+            
+            // Show live age container top right
+            const liveAgeContainer = document.getElementById('live-age-container');
+            liveAgeContainer.style.display = 'block';
+            gsap.fromTo(liveAgeContainer, 
+                { x: 200, opacity: 0 }, 
+                { x: 0, opacity: 1, duration: 1, ease: 'power2.out', delay: 1 }
+            );
+
+            // Create Balloons with Letters Loop
+            function spawnBalloons() {
+                const message = balloonMessage.replace(/\s/g, ''); 
+                const balloonCount = message.length;
+                
+                for(let i=0; i<balloonCount; i++) {
+                    setTimeout(() => {
+                        const balloon = document.createElement('div');
+                        const size = Math.random() * 20 + 60; // Make them a bit larger to fit letters
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        
+                        balloon.style.position = 'absolute';
+                        balloon.style.width = size + 'px';
+                        balloon.style.height = (size * 1.2) + 'px';
+                        balloon.style.backgroundColor = color;
+                        balloon.style.borderRadius = '50% 50% 50% 50% / 40% 40% 60% 60%';
+                        balloon.style.bottom = '-100px';
+                        balloon.style.left = (5 + i * (90 / balloonCount)) + '%'; // Spread them across the screen evenly
+                        balloon.style.opacity = '0.9';
+                        balloon.style.boxShadow = 'inset -10px -10px 20px rgba(0,0,0,0.2)';
+                        balloon.style.display = 'flex';
+                        balloon.style.justifyContent = 'center';
+                        balloon.style.alignItems = 'center';
+                        
+                        const text = document.createElement('span');
+                        text.innerText = message[i];
+                        text.style.color = '#fff';
+                        text.style.fontSize = (size * 0.5) + 'px';
+                        text.style.fontWeight = 'bold';
+                        text.style.textShadow = '1px 1px 3px rgba(0,0,0,0.3)';
+                        balloon.appendChild(text);
+                        
+                        const string = document.createElement('div');
+                        string.style.position = 'absolute';
+                        string.style.bottom = '-30px';
+                        string.style.left = '50%';
+                        string.style.width = '2px';
+                        string.style.height = '30px';
+                        string.style.backgroundColor = 'rgba(255,255,255,0.4)';
+                        balloon.appendChild(string);
+            
+                        container.appendChild(balloon);
+            
+                        gsap.to(balloon, {
+                            y: -(window.innerHeight + 300),
+                            x: (Math.random() - 0.5) * 50, // less drift so they stay in order
+                            rotation: (Math.random() - 0.5) * 20,
+                            duration: Math.random() * 3 + 5,
+                            ease: 'power1.out',
+                            onComplete: () => balloon.remove()
+                        });
+                    }, i * 200 + Math.random() * 100);
+                }
             }
 
-            // Create Confetti (Pataka papers)
-            for(let i=0; i<100; i++) {
-                const confetti = document.createElement('div');
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                
-                confetti.style.position = 'absolute';
-                confetti.style.width = (Math.random() * 10 + 5) + 'px';
-                confetti.style.height = (Math.random() * 20 + 10) + 'px';
-                confetti.style.backgroundColor = color;
-                confetti.style.top = '-20px';
-                confetti.style.left = Math.random() * 100 + '%';
-                confetti.style.opacity = '0.9';
-                
-                container.appendChild(confetti);
-                
-                gsap.to(confetti, {
-                    y: window.innerHeight + 50,
-                    x: "+=" + (Math.random() - 0.5) * 200,
-                    rotationX: Math.random() * 720,
-                    rotationY: Math.random() * 720,
-                    rotationZ: Math.random() * 720,
-                    duration: Math.random() * 2 + 2,
-                    ease: 'power1.in',
-                    delay: Math.random() * 0.5,
-                    onComplete: () => confetti.remove()
-                });
+            spawnBalloons();
+            setInterval(spawnBalloons, 6000); // repeat every 6 seconds
+
+            // Create Confetti (Party poppers from bottom corners)
+            firePartyPoppers();
+            
+            // 2 more times
+            setTimeout(firePartyPoppers, 1500);
+            setTimeout(firePartyPoppers, 3000);
+        }
+
+        function updateAgeCounter() {
+            const birthDate = new Date(dobStr);
+            const now = new Date();
+            
+            let years = now.getFullYear() - birthDate.getFullYear();
+            let lastBirthday = new Date(now.getFullYear(), 8, 26);
+            
+            if (now < lastBirthday) {
+                years--;
+                lastBirthday = new Date(now.getFullYear() - 1, 8, 26);
+            }
+            
+            const diffMs = now - lastBirthday;
+            const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diffMs % (1000 * 60)) / 1000);
+            
+            const counterEl = document.getElementById('live-age-counter');
+            if (counterEl) {
+                counterEl.innerHTML = `${years} Years, ${days} Days<br/>${hours} Hrs, ${minutes} Mins, ${seconds} Secs`;
             }
         }
+        setInterval(updateAgeCounter, 1000);
+        updateAgeCounter();
     </script>
 }
