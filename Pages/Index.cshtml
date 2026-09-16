@@ -8,26 +8,26 @@
 }
 
 <div class="fullscreen-center" id="countdown-scene">
-    <div class="glass-panel" style="padding: 3rem 4rem;">
-        <h2 class="mb-4">@Config["BirthdayConfig:IndexHeading"]</h2>
+    <div class="glass-panel p-3 p-sm-4 p-md-5" style="max-width: 95vw;">
+        <h2 class="mb-3 mb-md-4">@Config["BirthdayConfig:IndexHeading"]</h2>
         
-        <div id="countdown-timer" class="d-flex flex-row flex-nowrap align-items-center justify-content-center gap-2 gap-sm-3 gap-md-4">
-            <div class="time-block d-flex flex-column align-items-center">
+        <div id="countdown-timer" class="d-flex flex-row flex-nowrap align-items-center justify-content-center">
+            <div class="time-block d-flex flex-row align-items-baseline">
                 <span id="days" class="timer-digit">00</span>
                 <span class="timer-label">@Config["BirthdayConfig:IndexDaysLabel"]</span>
             </div>
             <div class="time-separator">:</div>
-            <div class="time-block d-flex flex-column align-items-center">
+            <div class="time-block d-flex flex-row align-items-baseline">
                 <span id="hours" class="timer-digit">00</span>
                 <span class="timer-label">@Config["BirthdayConfig:IndexHoursLabel"]</span>
             </div>
             <div class="time-separator">:</div>
-            <div class="time-block d-flex flex-column align-items-center">
+            <div class="time-block d-flex flex-row align-items-baseline">
                 <span id="minutes" class="timer-digit">00</span>
                 <span class="timer-label">@Config["BirthdayConfig:IndexMinutesLabel"]</span>
             </div>
             <div class="time-separator">:</div>
-            <div class="time-block d-flex flex-column align-items-center">
+            <div class="time-block d-flex flex-row align-items-baseline">
                 <span id="seconds" class="timer-digit">00</span>
                 <span class="timer-label">@Config["BirthdayConfig:IndexSecondsLabel"]</span>
             </div>
