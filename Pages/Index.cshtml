@@ -11,34 +11,25 @@
     <div class="glass-panel" style="padding: 3rem 4rem;">
         <h2 class="mb-4">@Config["BirthdayConfig:IndexHeading"]</h2>
         
-        <div id="countdown-timer" class="d-flex justify-content-center flex-wrap gap-4 mt-4" style="font-size: 2.5rem; font-weight: 800; text-shadow: 0 0 20px rgba(236,72,153,0.5);">
+        <div id="countdown-timer" class="d-flex flex-row flex-nowrap align-items-center justify-content-center gap-2 gap-sm-3 gap-md-4">
             <div class="time-block d-flex flex-column align-items-center">
-                <span id="days">00</span>
-                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">@Config["BirthdayConfig:IndexDaysLabel"]</span>
+                <span id="days" class="timer-digit">00</span>
+                <span class="timer-label">@Config["BirthdayConfig:IndexDaysLabel"]</span>
             </div>
+            <div class="time-separator">:</div>
             <div class="time-block d-flex flex-column align-items-center">
-                <span>:</span>
-                <span>&nbsp;</span>
+                <span id="hours" class="timer-digit">00</span>
+                <span class="timer-label">@Config["BirthdayConfig:IndexHoursLabel"]</span>
             </div>
+            <div class="time-separator">:</div>
             <div class="time-block d-flex flex-column align-items-center">
-                <span id="hours">00</span>
-                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">@Config["BirthdayConfig:IndexHoursLabel"]</span>
+                <span id="minutes" class="timer-digit">00</span>
+                <span class="timer-label">@Config["BirthdayConfig:IndexMinutesLabel"]</span>
             </div>
+            <div class="time-separator">:</div>
             <div class="time-block d-flex flex-column align-items-center">
-                <span>:</span>
-                <span>&nbsp;</span>
-            </div>
-            <div class="time-block d-flex flex-column align-items-center">
-                <span id="minutes">00</span>
-                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">@Config["BirthdayConfig:IndexMinutesLabel"]</span>
-            </div>
-            <div class="time-block d-flex flex-column align-items-center">
-                <span>:</span>
-                <span>&nbsp;</span>
-            </div>
-            <div class="time-block d-flex flex-column align-items-center">
-                <span id="seconds">00</span>
-                <span style="font-size: 1rem; font-weight: 400; color: #cbd5e1; text-transform: uppercase; letter-spacing: 2px;">@Config["BirthdayConfig:IndexSecondsLabel"]</span>
+                <span id="seconds" class="timer-digit">00</span>
+                <span class="timer-label">@Config["BirthdayConfig:IndexSecondsLabel"]</span>
             </div>
         </div>
 
