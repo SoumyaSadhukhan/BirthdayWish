@@ -34,7 +34,7 @@ body, html {
     z-index: 0;
     overflow: hidden;
     background-color: #0a0d18;
-    background-image: url('/images/background/disneyland_castle.jpg') !important;
+    background-image: url('/Images/background/disneyland_castle.jpg') !important;
     background-size: cover !important;
     background-position: center bottom !important;
     background-repeat: no-repeat !important;

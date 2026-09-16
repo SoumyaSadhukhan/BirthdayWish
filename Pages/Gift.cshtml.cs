@@ -20,13 +20,19 @@ public class GiftModel : PageModel
     {
         LetterText = _config["BirthdayConfig:LetterText"]?.Replace("\n", "<br>") ?? "Happy Birthday!";
         
-        string imagesPath = Path.Combine(_env.WebRootPath, "images");
+        string imagesPath = Path.Combine(_env.WebRootPath, "Images");
+        if (!Directory.Exists(imagesPath))
+        {
+            imagesPath = Path.Combine(_env.WebRootPath, "images");
+        }
+        
         if (Directory.Exists(imagesPath))
         {
             Images = Directory.GetFiles(imagesPath)
                               .Select(Path.GetFileName)
-                              .Where(f => f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || 
-                                          f.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
+                              .Where(f => f != null && (f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || 
+                                           f.EndsWith(".png", StringComparison.OrdinalIgnoreCase)))
+                              .Select(f => f!)
                               .ToList();
         }
     }
