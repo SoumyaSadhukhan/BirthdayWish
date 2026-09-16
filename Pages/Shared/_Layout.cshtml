@@ -18,17 +18,20 @@
     
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body>
+<body data-theme="@(ViewData["PageTheme"] ?? "index")">
     
-    <!-- Ambient animated background -->
-    <div class="ambient-background">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
+    <!-- Dynamic Interactive Ambient Background -->
+    <div class="aurora-background">
+        <canvas id="bg-canvas"></canvas>
+        <div class="aurora-overlay"></div>
+        <div class="aurora-blob aurora-1"></div>
+        <div class="aurora-blob aurora-2"></div>
+        <div class="aurora-blob aurora-3"></div>
+        <div class="aurora-blob aurora-4"></div>
     </div>
 
     <!-- Main Content Container with page transition class -->
-    <main class="page-transition-enter">
+    <main class="page-transition-enter" style="position: relative; z-index: 10;">
         @RenderBody()
     </main>
 

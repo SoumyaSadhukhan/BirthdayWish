@@ -4,6 +4,7 @@
 @model CakeModel
 @{
     ViewData["Title"] = Config["BirthdayConfig:CakeTitle"];
+    ViewData["PageTheme"] = "cake";
     int currentAge = 0;
     if (DateTime.TryParse(Config["BirthdayConfig:Birthdate"], out DateTime birthdate))
     {

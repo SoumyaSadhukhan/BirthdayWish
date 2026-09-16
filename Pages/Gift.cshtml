@@ -5,6 +5,7 @@
 @model GiftModel
 @{
     ViewData["Title"] = Config["BirthdayConfig:GiftTitle"];
+    ViewData["PageTheme"] = "gift";
 }
 
 <style>
@@ -304,6 +305,26 @@
     @@keyframes flapWings {
         0% { transform: scaleX(1) rotate(0deg); }
         100% { transform: scaleX(0.25) rotate(15deg); }
+    }
+
+    /* Distinct Vivid Butterfly Color Variants */
+    .butterfly-gold {
+        filter: sepia(1) hue-rotate(5deg) saturate(7) drop-shadow(0 0 8px rgba(253, 224, 71, 0.95)) !important;
+    }
+    .butterfly-rose {
+        filter: sepia(1) hue-rotate(295deg) saturate(8) drop-shadow(0 0 8px rgba(255, 71, 87, 0.95)) !important;
+    }
+    .butterfly-cyan {
+        filter: sepia(1) hue-rotate(145deg) saturate(7) drop-shadow(0 0 8px rgba(0, 210, 211, 0.95)) !important;
+    }
+    .butterfly-emerald {
+        filter: sepia(1) hue-rotate(85deg) saturate(7) drop-shadow(0 0 8px rgba(16, 172, 132, 0.95)) !important;
+    }
+    .butterfly-amethyst {
+        filter: sepia(1) hue-rotate(220deg) saturate(7) drop-shadow(0 0 8px rgba(156, 136, 255, 0.95)) !important;
+    }
+    .butterfly-orange {
+        filter: sepia(1) hue-rotate(330deg) saturate(9) drop-shadow(0 0 8px rgba(255, 127, 80, 0.95)) !important;
     }
 
     .drone-tap-prompt {
@@ -905,7 +926,89 @@
             return finalCoords;
         }
 
+        // Soft Instrumental "Happy Birthday" Music Box Synthesizer (No voice, loops infinitely during drone show)
+        let birthdayAudioCtx = null;
+        let isBirthdayMusicPlaying = false;
+        let birthdayTuneTimer = null;
+
+        const birthdayNotes = [
+            { note: 'G4', dur: 0.75 }, { note: 'G4', dur: 0.25 }, { note: 'A4', dur: 1.0 }, { note: 'G4', dur: 1.0 }, { note: 'C5', dur: 1.0 }, { note: 'B4', dur: 2.0 },
+            { note: 'G4', dur: 0.75 }, { note: 'G4', dur: 0.25 }, { note: 'A4', dur: 1.0 }, { note: 'G4', dur: 1.0 }, { note: 'D5', dur: 1.0 }, { note: 'C5', dur: 2.0 },
+            { note: 'G4', dur: 0.75 }, { note: 'G4', dur: 0.25 }, { note: 'G5', dur: 1.0 }, { note: 'E5', dur: 1.0 }, { note: 'C5', dur: 1.0 }, { note: 'B4', dur: 1.0 }, { note: 'A4', dur: 1.5 },
+            { note: 'F5', dur: 0.75 }, { note: 'F5', dur: 0.25 }, { note: 'E5', dur: 1.0 }, { note: 'C5', dur: 1.0 }, { note: 'D5', dur: 1.0 }, { note: 'C5', dur: 2.5 }
+        ];
+
+        const noteFreqs = {
+            'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99
+        };
+
+        function playSoftChime(freq, durationSec) {
+            if (!birthdayAudioCtx) return;
+            try {
+                const now = birthdayAudioCtx.currentTime;
+                const osc = birthdayAudioCtx.createOscillator();
+                const gain = birthdayAudioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now);
+
+                // Soft music box envelope (volume 0.2)
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(0.2, now + 0.04);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + durationSec * 0.95);
+
+                osc.connect(gain);
+                gain.connect(birthdayAudioCtx.destination);
+
+                osc.start(now);
+                osc.stop(now + durationSec);
+            } catch(e) {}
+        }
+
+        function startSoftBirthdayTune() {
+            stopSoftBirthdayTune();
+            isBirthdayMusicPlaying = true;
+            
+            if (!birthdayAudioCtx) {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtxClass) birthdayAudioCtx = new AudioCtxClass();
+            }
+            if (birthdayAudioCtx && birthdayAudioCtx.state === 'suspended') {
+                birthdayAudioCtx.resume();
+            }
+
+            let noteIndex = 0;
+            const beatDuration = 0.45; // seconds per beat
+
+            function scheduleNextNote() {
+                if (!isBirthdayMusicPlaying) return;
+
+                const current = birthdayNotes[noteIndex];
+                const freq = noteFreqs[current.note];
+                const durSec = current.dur * beatDuration;
+
+                if (freq) {
+                    playSoftChime(freq, durSec * 1.2);
+                }
+
+                noteIndex = (noteIndex + 1) % birthdayNotes.length;
+                birthdayTuneTimer = setTimeout(scheduleNextNote, durSec * 1000);
+            }
+
+            scheduleNextNote();
+        }
+
+        function stopSoftBirthdayTune() {
+            isBirthdayMusicPlaying = false;
+            if (birthdayTuneTimer) {
+                clearTimeout(birthdayTuneTimer);
+                birthdayTuneTimer = null;
+            }
+        }
+
         function startDroneShowLoop() {
+            startSoftBirthdayTune();
             const container = document.getElementById('drone-show-container');
             container.innerHTML = '';
             activeDrones = [];
@@ -926,8 +1029,11 @@
                 drone.style.opacity = '0';
                 drone.style.transform = 'translate(-50%, -50%)';
                 
+                const colorClasses = ['butterfly-gold', 'butterfly-rose', 'butterfly-cyan', 'butterfly-emerald', 'butterfly-amethyst', 'butterfly-orange'];
+                const assignedColor = colorClasses[i % colorClasses.length];
+                
                 const wing = document.createElement('span');
-                wing.className = 'butterfly-wing';
+                wing.className = `butterfly-wing ${assignedColor}`;
                 wing.innerText = '🦋';
                 wing.style.animationDuration = (0.14 + Math.random() * 0.1) + 's';
                 drone.appendChild(wing);
@@ -1018,6 +1124,7 @@
         function stopDroneShow() {
             if (!isDroneShowActive) return;
             isDroneShowActive = false;
+            stopSoftBirthdayTune();
             clearAllDroneTimeouts();
             
             const promptElem = document.getElementById('drone-tap-prompt');

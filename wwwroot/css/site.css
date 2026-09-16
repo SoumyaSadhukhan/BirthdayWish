@@ -16,7 +16,7 @@ body, html {
     padding: 0;
     width: 100%;
     height: 100vh;
-    background-color: var(--bg-color);
+    background-color: transparent !important;
     color: var(--text-color);
     overflow: hidden;
     /* Prevent pull-to-refresh on mobile */
@@ -24,74 +24,150 @@ body, html {
     touch-action: none;
 }
 
-/* Ambient Background Blobs */
-.ambient-background {
+/* Dynamic Aurora & Interactive Disneyland Castle Background System */
+.aurora-background {
     position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    overflow: hidden;
+    background-color: #0a0d18;
+    background-image: url('/images/background/disneyland_castle.jpg') !important;
+    background-size: cover !important;
+    background-position: center bottom !important;
+    background-repeat: no-repeat !important;
+    transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+#bg-canvas {
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: -1;
-    overflow: hidden;
-    background: #0f172a;
+    z-index: 3;
+    pointer-events: none;
 }
 
-.blob {
+.aurora-overlay {
     position: absolute;
-    filter: blur(80px);
-    opacity: 0.6;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    background: radial-gradient(circle at 50% 30%, rgba(0, 0, 0, 0.1) 0%, rgba(10, 14, 26, 0.35) 60%, rgba(5, 7, 15, 0.65) 100%);
+    pointer-events: none;
+}
+
+.aurora-blob {
+    position: absolute;
+    filter: blur(100px);
+    opacity: 0.22;
     border-radius: 50%;
-    animation: float 20s infinite alternate ease-in-out;
+    mix-blend-mode: screen;
+    animation: auroraWave 22s infinite alternate ease-in-out;
+    transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 1;
 }
 
-.blob-1 {
-    top: -10%; left: -10%; width: 50vw; height: 50vw; background: #c026d3; animation-delay: 0s;
+.aurora-1 {
+    top: -15%; left: -10%; width: 55vw; height: 55vw;
+    animation-delay: 0s;
 }
-.blob-2 {
-    bottom: -10%; right: -10%; width: 60vw; height: 60vw; background: #ec4899; animation-delay: -5s;
+.aurora-2 {
+    bottom: -15%; right: -10%; width: 60vw; height: 60vw;
+    animation-delay: -6s;
 }
-.blob-3 {
-    top: 40%; left: 40%; width: 40vw; height: 40vw; background: #3b82f6; animation-delay: -10s;
+.aurora-3 {
+    top: 30%; left: 35%; width: 45vw; height: 45vw;
+    animation-delay: -12s;
+}
+.aurora-4 {
+    bottom: 20%; left: -5%; width: 40vw; height: 40vw;
+    animation-delay: -18s;
 }
 
-@keyframes float {
-    0% { transform: translate(0, 0) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-    100% { transform: translate(0, 0) scale(1); }
+@keyframes auroraWave {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    25% { transform: translate(40px, -60px) rotate(45deg) scale(1.15); }
+    50% { transform: translate(-30px, 40px) rotate(90deg) scale(0.9); }
+    75% { transform: translate(50px, 20px) rotate(135deg) scale(1.08); }
+    100% { transform: translate(0, 0) rotate(180deg) scale(1); }
 }
+
+/* Disneyland Page Theme Tone Variations */
+body[data-theme="index"] .aurora-overlay {
+    background: radial-gradient(circle at 50% 35%, rgba(0, 0, 0, 0.1) 0%, rgba(10, 14, 26, 0.35) 60%, rgba(6, 9, 20, 0.65) 100%);
+}
+body[data-theme="index"] .aurora-1 { background: radial-gradient(circle, #8b5cf6, #3b82f6); }
+body[data-theme="index"] .aurora-2 { background: radial-gradient(circle, #ec4899, #7c3aed); }
+body[data-theme="index"] .aurora-3 { background: radial-gradient(circle, #06b6d4, #1d4ed8); }
+body[data-theme="index"] .aurora-4 { background: radial-gradient(circle, #d946ef, #4338ca); }
+
+body[data-theme="wish"] .aurora-overlay {
+    background: radial-gradient(circle at 50% 35%, rgba(0, 0, 0, 0.08) 0%, rgba(20, 9, 26, 0.32) 60%, rgba(10, 5, 18, 0.62) 100%);
+}
+body[data-theme="wish"] .aurora-1 { background: radial-gradient(circle, #f43f5e, #be185d); }
+body[data-theme="wish"] .aurora-2 { background: radial-gradient(circle, #d946ef, #9333ea); }
+body[data-theme="wish"] .aurora-3 { background: radial-gradient(circle, #fb7185, #e11d48); }
+body[data-theme="wish"] .aurora-4 { background: radial-gradient(circle, #f59e0b, #c026d3); }
+
+body[data-theme="cake"] .aurora-overlay {
+    background: radial-gradient(circle at 50% 35%, rgba(0, 0, 0, 0.1) 0%, rgba(23, 11, 30, 0.35) 60%, rgba(12, 6, 20, 0.65) 100%);
+}
+body[data-theme="cake"] .aurora-1 { background: radial-gradient(circle, #c026d3, #9333ea); }
+body[data-theme="cake"] .aurora-2 { background: radial-gradient(circle, #fbbf24, #d97706); }
+body[data-theme="cake"] .aurora-3 { background: radial-gradient(circle, #f472b6, #db2777); }
+body[data-theme="cake"] .aurora-4 { background: radial-gradient(circle, #a855f7, #6b21a8); }
+
+body[data-theme="gift"] .aurora-overlay {
+    background: radial-gradient(circle at 50% 35%, rgba(0, 0, 0, 0.1) 0%, rgba(9, 14, 31, 0.35) 60%, rgba(5, 8, 20, 0.65) 100%);
+}
+body[data-theme="gift"] .aurora-1 { background: radial-gradient(circle, #4f46e5, #312e81); }
+body[data-theme="gift"] .aurora-2 { background: radial-gradient(circle, #ec4899, #9d174d); }
+body[data-theme="gift"] .aurora-3 { background: radial-gradient(circle, #06b6d4, #0891b2); }
+body[data-theme="gift"] .aurora-4 { background: radial-gradient(circle, #8b5cf6, #581c87); }
 
 /* Glassmorphism Utilities */
 .glass-panel {
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--glass-border);
+    background: rgba(10, 15, 30, 0.82) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1.5px solid rgba(253, 224, 71, 0.4) !important;
     border-radius: 24px;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.75), inset 0 0 20px rgba(253, 224, 71, 0.15);
 }
 
-/* Premium Buttons */
+/* Premium Buttons - High Contrast Golden Royalty Theme */
 .btn-premium {
-    background: linear-gradient(135deg, #ec4899, #c026d3);
-    color: white;
-    border: none;
-    padding: 16px 40px;
+    background: linear-gradient(135deg, #fde047 0%, #fbbf24 50%, #f59e0b 100%) !important;
+    color: #0f172a !important;
+    border: 2px solid #ffffff !important;
+    padding: 16px 44px;
     border-radius: 50px;
     font-family: 'Outfit', sans-serif;
-    font-size: 1.2rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    font-weight: 800 !important;
     cursor: pointer;
-    box-shadow: 0 10px 20px var(--accent-glow);
+    box-shadow: 0 10px 30px rgba(251, 191, 36, 0.6), 0 0 20px rgba(253, 224, 71, 0.5) !important;
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     text-decoration: none;
     display: inline-block;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
 }
 
 .btn-premium:hover {
-    transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 15px 25px var(--accent-glow);
-    color: white;
+    transform: translateY(-4px) scale(1.06);
+    background: linear-gradient(135deg, #ffffff 0%, #fde047 50%, #fbbf24 100%) !important;
+    box-shadow: 0 15px 40px rgba(253, 224, 71, 0.85), 0 0 30px rgba(255, 255, 255, 0.8) !important;
+    color: #000000 !important;
+    border-color: #ffffff !important;
 }
 
 /* Page Transitions */
@@ -120,27 +196,33 @@ body, html {
     overflow: hidden;
 }
 
-/* Typography */
+/* High Contrast Typography */
 h1 {
-    font-size: 4rem;
+    font-size: 3.8rem;
     font-weight: 800;
-    letter-spacing: -1px;
+    letter-spacing: -0.5px;
     margin-bottom: 1rem;
-    background: linear-gradient(to right, #fff, #cbd5e1);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #ffffff !important;
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9), 0 0 25px rgba(253, 224, 71, 0.5) !important;
 }
 
 h2 {
     font-size: 2.5rem;
-    font-weight: 600;
+    font-weight: 800;
     margin-bottom: 1rem;
+    color: #fde047 !important;
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    text-shadow: 0 3px 12px rgba(0, 0, 0, 0.9), 0 0 20px rgba(245, 158, 11, 0.6) !important;
 }
 
 p {
     font-size: 1.25rem;
-    line-height: 1.6;
-    color: #cbd5e1;
+    line-height: 1.7;
+    color: #ffffff !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9) !important;
 }
 
 /* Responsive Overrides */
