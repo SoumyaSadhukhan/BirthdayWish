@@ -1,0 +1,49 @@
+name: CI/CD Pipeline - Render Deploy
+
+on:
+  push:
+    branches:
+      - deploy
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    name: Build & Verify .NET 9 Web App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore Piu.csproj
+
+      - name: Build Release Bundle
+        run: dotnet build Piu.csproj -c Release --no-restore
+
+      - name: Publish Verification
+        run: dotnet publish Piu.csproj -c Release -o ./publish
+
+  trigger-render-deploy:
+    name: Trigger Render Deploy Webhook
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/deploy'
+
+    steps:
+      - name: Trigger Render Deploy Webhook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -n "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "Triggering Render Deploy Webhook..."
+            curl -s -X POST "$RENDER_DEPLOY_HOOK_URL"
+            echo "Deploy webhook triggered successfully."
+          else
+            echo "RENDER_DEPLOY_HOOK_URL secret not set. Render auto-deploys via GitHub integration on branch push."
+          fi

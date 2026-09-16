@@ -1,0 +1,12 @@
+# Render Infrastructure-as-Code Blueprint
+services:
+  - type: web
+    name: piu-birthday-app
+    env: docker
+    plan: free
+    branch: deploy
+    autoDeploy: true
+    dockerfilePath: Dockerfile
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
