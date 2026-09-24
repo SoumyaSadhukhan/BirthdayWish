@@ -226,7 +226,7 @@ p {
 }
 
 /* Horizontal Single-Row Side-by-Side Countdown Timer */
-#countdown-timer {
+#countdown-timer, #angel-demo-target {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -271,6 +271,10 @@ p {
     line-height: 1 !important;
     text-shadow: 0 0 12px rgba(244, 114, 182, 0.8) !important;
     margin: 0 clamp(1px, 0.5vw, 4px) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: center !important;
 }
 
 /* Responsive Overrides */

@@ -26,10 +26,7 @@ class AngelDialogue {
             this.bubbleElem = document.createElement('div');
             this.bubbleElem.id = 'angel-speech-bubble';
             this.bubbleElem.innerHTML = `
-                <div class="angel-bubble-header">
-                    <span class="angel-bubble-title">✨ Angel Guide</span>
-                    <button class="angel-bubble-close" id="angel-bubble-close-btn">✖</button>
-                </div>
+                <button class="angel-bubble-close" id="angel-bubble-close-btn">✖</button>
                 <div class="angel-bubble-body" id="angel-bubble-text-body"></div>
             `;
             document.body.appendChild(this.bubbleElem);
@@ -49,7 +46,7 @@ class AngelDialogue {
         if (this.typewriterTimer) clearInterval(this.typewriterTimer);
         if (this.hideTimeoutTimer) clearTimeout(this.hideTimeoutTimer);
 
-        this.textElem.innerText = '';
+        this.textElem.textContent = '';
         this.bubbleElem.classList.add('active');
         this.isVisible = true;
 
@@ -62,7 +59,7 @@ class AngelDialogue {
 
         this.typewriterTimer = setInterval(() => {
             if (charIdx < text.length) {
-                this.textElem.innerText += text.charAt(charIdx);
+                this.textElem.textContent += text.charAt(charIdx);
                 charIdx++;
             } else {
                 clearInterval(this.typewriterTimer);

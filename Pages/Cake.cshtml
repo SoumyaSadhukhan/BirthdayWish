@@ -184,10 +184,13 @@
         const balloonMessage = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:BalloonMessage"]));
         const dobStr = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:Birthdate"]));
         
+        const msgCakeCandle = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen3_Cake_Candle"])";
         const msgCakeCut = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen3_Cake_Cut"])";
         const msgCakeBite = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen3_Cake_Bite"])";
         const msgCakeBiteMore = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen3_Cake_BiteMore"])";
         const msgCakeDone = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen3_Cake_Done"])";
+        
+        window.AngelCurrentStepMessage = msgCakeCandle;
         
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
@@ -260,7 +263,7 @@
             gsap.fromTo(instructionText, { scale: 1.2, color: '#ec4899' }, { scale: 1, color: '#cbd5e1', duration: 0.5 });
             
             if (window.angelController) {
-                window.angelController.say(msgCakeCut, { duration: 5000 });
+                window.angelController.setStepMessage(msgCakeCut);
                 window.angelController.wave();
             }
             
@@ -272,6 +275,8 @@
             popperInterval = setInterval(firePartyPoppers, 3000);
         }
         
+        const cakeTotalBites = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<int>("BirthdayConfig:CakeTotalBites", 4)));
+        
         let currentBite = 0;
         function takeBite() {
             const sliceContainer = document.getElementById('active-slice-container');
@@ -279,8 +284,9 @@
             if (!slice) return;
             
             currentBite++;
-            if (currentBite <= 6) {
-                const rightX = 100 - (currentBite * 8.33);
+            if (currentBite <= cakeTotalBites) {
+                const stepPercent = 50 / cakeTotalBites;
+                const rightX = 100 - (currentBite * stepPercent);
                 gsap.to(slice, { 
                     clipPath: `polygon(50% 0%, ${rightX}% 100%, 0% 100%)`, 
                     duration: 0.3 
@@ -291,15 +297,16 @@
                     { rotation: 0, duration: 0.3, ease: 'back.out(2)' }
                 );
                 
-                if (currentBite === 6) {
+                if (currentBite === cakeTotalBites) {
                     gsap.to(sliceContainer, { scale: 0, opacity: 0, duration: 0.5, delay: 0.3, onComplete: () => {
                         sliceContainer.style.display = 'none';
                         instructionText.style.display = 'none';
+                        triggerCakeDoneSpeech(); // Speak "Cake time was magical..." ONLY when full cake is eaten!
                     }});
                 } else if (currentBite === 1) {
                     instructionText.innerHTML = txtBiteMore;
                     if (window.angelController) {
-                        window.angelController.say(msgCakeBiteMore, { duration: 5000 });
+                        window.angelController.setStepMessage(msgCakeBiteMore);
                         window.angelController.wave();
                     }
                 }
@@ -355,12 +362,11 @@
             gsap.fromTo(instructionText, { scale: 1.2, opacity: 0, y: 0 }, { scale: 1, opacity: 1, y: -20, duration: 0.5 });
 
             if (window.angelController) {
-                window.angelController.say(msgCakeBite, { duration: 5000 });
+                window.angelController.setStepMessage(msgCakeBite);
             }
-            
-            setTimeout(() => {
-                triggerCelebration();
-            }, 1000);
+
+            // Reveal UI celebration elements (wishes, age counter, balloons, gift button)
+            showUICelebration();
         }
 
         cake.addEventListener('click', () => {
@@ -417,14 +423,7 @@
         }
         
         // Ask for mic permission after a short delay
-        setTimeout(initMicrophone, 1000);
-
-        function triggerCelebration() {
-            if (window.angelController) {
-                window.angelController.say(msgCakeDone, { duration: 6000 });
-                window.angelController.flyTo({x: 3, y: 3, z: 0}, {duration: 2000}); // Fly up and celebrate
-            }
-
+        function showUICelebration() {
             const actionContainer = document.getElementById('action-container');
             actionContainer.style.display = 'block';
             gsap.fromTo(actionContainer, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1, delay: 1.5 });
@@ -488,7 +487,7 @@
                         string.style.backgroundColor = 'rgba(255,255,255,0.4)';
                         balloon.appendChild(string);
             
-                        container.appendChild(balloon);
+                        if (container) container.appendChild(balloon);
             
                         gsap.to(balloon, {
                             y: -(window.innerHeight + 300),
@@ -507,10 +506,15 @@
 
             // Create Confetti (Party poppers from bottom corners)
             firePartyPoppers();
-            
-            // 2 more times
             setTimeout(firePartyPoppers, 1500);
             setTimeout(firePartyPoppers, 3000);
+        }
+
+        function triggerCakeDoneSpeech() {
+            if (window.angelController) {
+                window.angelController.setStepMessage(msgCakeDone);
+                window.angelController.flyTo({x: 3, y: 3, z: 0}, {duration: 2000}); // Fly up and celebrate
+            }
         }
 
         function updateAgeCounter() {

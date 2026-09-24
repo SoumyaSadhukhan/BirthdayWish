@@ -84,6 +84,11 @@ class AngelController {
 
         // Start random background roaming
         this.initRoaming();
+
+        // Trigger initial standing speech popup for current page after entrance
+        setTimeout(() => {
+            this.triggerStandingPopup();
+        }, 1200);
     }
 
     initRoaming() {
@@ -91,31 +96,39 @@ class AngelController {
         const flightSpeed = this.config.flySpeed || 3.0; // World units per second
 
         setInterval(() => {
-            if (this.config.roamingEnabled !== false && !this.config.fixedPosition && this.state === AngelState.Hovering && !this.dialogue.isVisible) {
-                const camera = this.renderer.camera;
-                
-                // Pick random NDC screen coordinates inside safe viewing area
-                const randomNdcX = (Math.random() - 0.5) * 1.3; // -0.65 to +0.65
-                const randomNdcY = (Math.random() - 0.5) * 1.1; // -0.55 to +0.55
-                
-                const vector = new THREE.Vector3(randomNdcX, randomNdcY, 0.5);
-                vector.unproject(camera);
-                
-                const dir = vector.sub(camera.position).normalize();
-                const distanceZ = (0 - camera.position.z) / dir.z; 
-                let targetPos = camera.position.clone().add(dir.multiplyScalar(distanceZ));
-                
-                targetPos = this.flight.getSafeWorldPosition(targetPos);
-                
-                const currentPos = this.renderer.modelGroup.position;
-                const dist = currentPos.distanceTo(targetPos);
-                
-                if (dist > 0.6) {
-                    const durationMs = Math.max(1500, (dist / flightSpeed) * 1000);
-                    this.flight.flyTo(targetPos, { duration: durationMs });
+            if (typeof isDroneShowActive !== 'undefined' && isDroneShowActive) return;
+
+            if (this.state === AngelState.Hovering && !this.dialogue.isVisible) {
+                if (this.config.roamingEnabled !== false && !this.config.fixedPosition) {
+                    const camera = this.renderer.camera;
+                    
+                    // Pick random NDC screen coordinates inside safe viewing area
+                    const randomNdcX = (Math.random() - 0.5) * 1.3; // -0.65 to +0.65
+                    const randomNdcY = (Math.random() - 0.5) * 1.1; // -0.55 to +0.55
+                    
+                    const vector = new THREE.Vector3(randomNdcX, randomNdcY, 0.5);
+                    vector.unproject(camera);
+                    
+                    const dir = vector.sub(camera.position).normalize();
+                    const distanceZ = (0 - camera.position.z) / dir.z; 
+                    let targetPos = camera.position.clone().add(dir.multiplyScalar(distanceZ));
+                    
+                    targetPos = this.flight.getSafeWorldPosition(targetPos);
+                    
+                    const currentPos = this.renderer.modelGroup.position;
+                    const dist = currentPos.distanceTo(targetPos);
+                    
+                    if (dist > 0.6) {
+                        const durationMs = Math.max(1500, (dist / flightSpeed) * 1000);
+                        this.flight.flyTo(targetPos, { duration: durationMs });
+                    } else {
+                        this.triggerStandingPopup();
+                    }
+                } else {
+                    this.triggerStandingPopup();
                 }
             }
-        }, standingTime);
+        }, 1500);
     }
 
     setState(newState) {
@@ -130,30 +143,40 @@ class AngelController {
         }
     }
 
+    setStepMessage(textMessage, speakImmediately = true) {
+        window.AngelCurrentStepMessage = textMessage;
+        if (speakImmediately && this.dialogue) {
+            const durationMs = (this.config.standingTimeSec || 5.0) * 1000;
+            this.dialogue.say(textMessage, { duration: durationMs });
+        }
+    }
+
     triggerStandingPopup() {
         if (!this.dialogue) return;
+        if (typeof isDroneShowActive !== 'undefined' && isDroneShowActive) return;
+
         const standingMsg = this.getCurrentPageStandingMessage();
+        if (!standingMsg) return;
         const durationMs = (this.config.standingTimeSec || 5.0) * 1000;
         this.dialogue.say(standingMsg, { duration: durationMs });
     }
 
     getCurrentPageStandingMessage() {
+        if (window.AngelCurrentStepMessage) {
+            return window.AngelCurrentStepMessage;
+        }
+
         const path = window.location.pathname.toLowerCase();
+        const msgs = this.config.messages || {};
+
         if (path.includes('wish')) {
-            return "Happy Birthday Piu! Today is all about you! 🎂✨";
+            return msgs.wish || "Happy Birthday Piu! Today is all about you! Tap below to cut your cake! 🎂✨";
         } else if (path.includes('cake')) {
-            return "Make a wish and blow out the candle! 🕯️✨";
+            return msgs.cakeCandle || "Make a special wish and tap (or blow) to blow out the candle! 🕯️✨";
         } else if (path.includes('gift')) {
-            return "Tap the gift box to open your birthday surprises! 🎁✨";
+            return msgs.giftInitial || "Tap the gift box to open your birthday surprises! 🎁✨";
         } else {
-            const phrases = [
-                "Shh... magical surprises await you! ✨",
-                "I'm right here celebrating with you! 🎉",
-                "Wishing you the happiest birthday ever! 💖",
-                "Tap around to explore your special day! 🌟"
-            ];
-            const randomIdx = Math.floor(Math.random() * phrases.length);
-            return phrases[randomIdx];
+            return null;
         }
     }
 

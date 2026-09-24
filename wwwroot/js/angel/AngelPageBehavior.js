@@ -14,6 +14,15 @@ class AngelPageBehavior {
         if (this.demoRun) return;
         this.demoRun = true;
 
+        // Check if initial intro greeting has already been shown once
+        if (sessionStorage.getItem('angel_intro_shown')) {
+            // Already shown once -> Skip intro greeting completely
+            return;
+        }
+
+        // Mark as shown so it never displays again
+        sessionStorage.setItem('angel_intro_shown', 'true');
+
         setTimeout(() => {
             this.runDemoSequence();
         }, 800);
@@ -32,28 +41,9 @@ class AngelPageBehavior {
         this.controller.flight.flyTo(hoverPos, {
             duration: 2200,
             onComplete: () => {
-                // 3. Play Wave & Display Greeting
+                // 3. Play Wave & trigger current step speech popup
                 this.controller.animator.play('Wave');
-                this.controller.dialogue.say("Hi! I'm your guide. Welcome! ✨", { duration: 4000 });
-
-                // 4. After 3.5s, fly to demo target element (#angel-demo-target or page action target)
-                setTimeout(() => {
-                    const demoElem = document.getElementById('angel-demo-target') || 
-                                     document.getElementById('action-container') || 
-                                     document.getElementById('countdown-timer') ||
-                                     document.getElementById('the-cake') ||
-                                     document.getElementById('the-gift-box');
-
-                    if (demoElem && demoElem.id) {
-                        this.controller.pointToElement(demoElem.id, {
-                            offsetX: 100,
-                            offsetY: -30,
-                            duration: 2000,
-                            speech: "Let me show you this magical section! ✨",
-                            speechOptions: { duration: 4000 }
-                        });
-                    }
-                }, 3800);
+                this.controller.triggerStandingPopup();
             }
         });
     }

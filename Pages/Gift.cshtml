@@ -483,10 +483,16 @@
         const puzzleRows = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<int>("BirthdayConfig:PuzzleGridRows", 4)));
         const puzzleCols = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<int>("BirthdayConfig:PuzzleGridCols", 4)));
         
+        const msgGiftInitial = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Initial"])";
+        const msgGiftFlowers = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Flowers"])";
+        const msgGiftTeddy = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Teddy"])";
+        const msgGiftChocolates = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Chocolates"])";
         const msgGiftEnvelope = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Envelope"])";
         const msgGiftPhotos = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Photos"])";
         const msgGiftPuzzle = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Puzzle"])";
         const msgGiftDone = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Done"])";
+        
+        window.AngelCurrentStepMessage = msgGiftInitial;
         
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
@@ -632,7 +638,7 @@
                             });
 
                             if (window.angelController) {
-                                window.angelController.say(msgGiftEnvelope, { duration: 6000 });
+                                 window.angelController.setStepMessage(msgGiftEnvelope);
                             }
                             
                             return; // Stop here, so we don't fly it away yet
@@ -726,18 +732,22 @@
                             initPuzzle();
                             scramblePuzzle();
                             triggerParticleCelebration('puzzle');
-                            if (window.angelController) window.angelController.say(msgGiftPuzzle, { duration: 5000 });
+                            if (window.angelController) window.angelController.setStepMessage(msgGiftPuzzle);
                         } else if (index === 5) {
                             triggerParticleCelebration('photo');
-                            if (window.angelController) window.angelController.say(msgGiftPhotos, { duration: 5000 });
+                            if (window.angelController) window.angelController.setStepMessage(msgGiftPhotos);
                         } else if (index === 4) {
                             triggerParticleCelebration('letter');
+                            if (window.angelController) window.angelController.setStepMessage(msgGiftEnvelope);
                         } else if (index === 3) {
                             triggerParticleCelebration('badge', '/images/image_card/chocolate_bunch.png');
+                            if (window.angelController) window.angelController.setStepMessage(msgGiftChocolates);
                         } else if (index === 2) {
                             triggerParticleCelebration('badge', '/images/image_card/teddy_bears.png');
+                            if (window.angelController) window.angelController.setStepMessage(msgGiftTeddy);
                         } else if (index === 1) {
                             triggerParticleCelebration('badge', '/images/image_card/flower_bouquet.png');
+                            if (window.angelController) window.angelController.setStepMessage(msgGiftFlowers);
                         } else {
                             triggerParticleCelebration('emoji', '🎉');
                         }
@@ -845,7 +855,7 @@
             isDroneShowActive = true;
 
             if (window.angelController) {
-                window.angelController.say(msgGiftDone, { duration: 7000 });
+                window.angelController.say(msgGiftDone, { duration: droneFlutterDurationSec * 1000 });
                 window.angelController.flyTo({x: 0, y: 4, z: -2}, {duration: 2500}); // Fly up
             }
 
@@ -871,6 +881,10 @@
                 promptElem.className = 'drone-tap-prompt';
                 promptElem.innerText = '✨ Tap anywhere to see final message ✨';
                 document.body.appendChild(promptElem);
+            }
+
+            if (window.angelController) {
+                window.angelController.setStepMessage(msgGiftDone);
             }
 
             startDroneShowLoop();
@@ -1132,9 +1146,18 @@
                 if (!isDroneShowActive) return;
                 
                 const phraseText = dronePhrases[phraseIndex % dronePhrases.length];
+                const cleanText = phraseText.replace(/\r/g, '').replace(/\n/g, ' ').trim();
+                const parrotSpeech = "They wanna say you that: " + cleanText + " ✨";
+
+                // During arrange phase: Hide speech bubble until butterflies finish forming text
+                if (window.angelController && window.angelController.dialogue) {
+                    window.angelController.dialogue.hide();
+                    window.AngelCurrentStepMessage = null;
+                }
+
                 const targetCoords = getTargetCoordsForPhrase(phraseText, activeDrones.length);
                 
-                // 1. Arrange: Drones fly smoothly to letter coordinates and STOP COMPLETELY STILL!
+                // 1. Arrange: Drones fly smoothly to letter coordinates
                 activeDrones.forEach((drone, i) => {
                     gsap.killTweensOf(drone);
                     const target = targetCoords[i];
@@ -1147,12 +1170,27 @@
                     });
                 });
 
+                // When full arrange is COMPLETE: Parrot speaks the text!
+                const arrangeDelayMs = droneArrangeDurationSec * 1000;
+                addDroneTimeout(() => {
+                    if (!isDroneShowActive) return;
+                    if (window.angelController) {
+                        window.AngelCurrentStepMessage = parrotSpeech;
+                        window.angelController.say(parrotSpeech, { duration: (droneShowtimeSec + 2.0) * 1000 });
+                    }
+                }, arrangeDelayMs);
+
                 // Total hold time = arrange time + showtime (holding still)
                 const holdDelayMs = (droneArrangeDurationSec + droneShowtimeSec) * 1000;
 
-                // 2. Spread: After showtime, scatter butterflies across 100vw and 100vh
+                // 2. Spread: When drone stand time completes, parrot stops talking and drones scatter
                 addDroneTimeout(() => {
                     if (!isDroneShowActive) return;
+
+                    if (window.angelController && window.angelController.dialogue) {
+                        window.angelController.dialogue.hide();
+                        window.AngelCurrentStepMessage = null;
+                    }
                     
                     activeDrones.forEach((drone) => {
                         gsap.killTweensOf(drone);
