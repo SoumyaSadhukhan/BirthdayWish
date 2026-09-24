@@ -20,19 +20,24 @@ public class GiftModel : PageModel
     {
         LetterText = _config["BirthdayConfig:LetterText"]?.Replace("\n", "<br>") ?? "Happy Birthday!";
         
-        string imagesPath = Path.Combine(_env.WebRootPath, "Images");
-        if (!Directory.Exists(imagesPath))
+        string cardPath = Path.Combine(_env.WebRootPath, "Images", "card");
+        if (!Directory.Exists(cardPath))
         {
-            imagesPath = Path.Combine(_env.WebRootPath, "images");
+            cardPath = Path.Combine(_env.WebRootPath, "images", "card");
+        }
+        if (!Directory.Exists(cardPath))
+        {
+            cardPath = Path.Combine(_env.WebRootPath, "Images");
         }
         
-        if (Directory.Exists(imagesPath))
+        if (Directory.Exists(cardPath))
         {
-            Images = Directory.GetFiles(imagesPath)
+            var validExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+            Images = Directory.GetFiles(cardPath)
                               .Select(Path.GetFileName)
-                              .Where(f => f != null && (f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) || 
-                                           f.EndsWith(".png", StringComparison.OrdinalIgnoreCase)))
+                              .Where(f => !string.IsNullOrEmpty(f) && validExtensions.Contains(Path.GetExtension(f)))
                               .Select(f => f!)
+                              .OrderBy(f => System.Text.RegularExpressions.Regex.Replace(f, @"\d+", m => m.Value.PadLeft(10, '0')))
                               .ToList();
         }
     }

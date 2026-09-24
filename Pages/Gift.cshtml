@@ -389,18 +389,29 @@
                         {
                             var rnd = new Random();
                             var i = 0;
-                            var captions = Config.GetSection("BirthdayConfig:PhotoCaptions").GetChildren().Select(c => c.Value).ToArray();
-                            if (captions.Length == 0) {
-                                captions = new[] { "Memory" };
-                            }
+                            var captionChildren = Config.GetSection("BirthdayConfig:PhotoCaptions").GetChildren().ToList();
+                            var captionDict = captionChildren.ToDictionary(c => c.Key, c => c.Value ?? "", StringComparer.OrdinalIgnoreCase);
+                            var captionArray = captionChildren.Select(c => c.Value ?? "").Where(v => !string.IsNullOrEmpty(v)).ToArray();
                             
                             foreach (var img in Model.Images)
                             {
                                 var zIndex = Model.Images.Count - i;
                                 var rot = (rnd.NextDouble() - 0.5) * 15; // -7.5 to +7.5 deg
-                                var cap = captions[i % captions.Length];
+                                var imgNoExt = System.IO.Path.GetFileNameWithoutExtension(img);
+                                
+                                string cap;
+                                if (captionDict.TryGetValue(img, out var cap1) && !string.IsNullOrEmpty(cap1)) {
+                                    cap = cap1;
+                                } else if (captionDict.TryGetValue(imgNoExt, out var cap2) && !string.IsNullOrEmpty(cap2)) {
+                                    cap = cap2;
+                                } else if (captionArray.Length > 0) {
+                                    cap = captionArray[i % captionArray.Length];
+                                } else {
+                                    cap = "Memory";
+                                }
+
                                 <div class="photo-card" style="z-index: @zIndex; transform: rotate(@(rot)deg);">
-                                    <div class="photo-image" style="background-image: url('/Images/@img');"></div>
+                                    <div class="photo-image" style="background-image: url('/images/card/@img');"></div>
                                     <div class="photo-caption">@cap</div>
                                 </div>
                                 i++;
@@ -473,7 +484,7 @@
         const allImages = [
             @foreach(var img in Model.Images)
             {
-                <text>'/images/@img',</text>
+                <text>'/images/card/@img',</text>
             }
         ];
         
