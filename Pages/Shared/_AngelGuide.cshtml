@@ -16,6 +16,8 @@
         takeoffTransitionTimeSec: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:TakeoffTransitionTimeSec", 0.5))),
         landingTransitionTimeSec: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:LandingTransitionTimeSec", 0.7))),
         messages: {
+            indexWaiting: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:AngelGuideMessages:Screen1_Index_Waiting"])),
+            indexFinished: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:AngelGuideMessages:Screen1_Index_Finished"])),
             wish: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:AngelGuideMessages:Screen2_Wish"])),
             cakeCandle: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:AngelGuideMessages:Screen3_Cake_Candle"])),
             cakeCut: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config["BirthdayConfig:AngelGuideMessages:Screen3_Cake_Cut"])),

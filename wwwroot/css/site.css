@@ -336,3 +336,75 @@ p {
         right: 5px !important;
     }
 }
+
+/* Magical Animated Custom Cursor System */
+#magic-cursor-dot, #magic-cursor-ring {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none !important;
+    z-index: 999999;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                height 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), 
+                background-color 0.25s, 
+                border-color 0.25s, 
+                box-shadow 0.25s,
+                opacity 0.3s;
+    will-change: transform, left, top;
+    opacity: 0;
+}
+
+#magic-cursor-dot {
+    width: 8px;
+    height: 8px;
+    background: #fde047;
+    box-shadow: 0 0 10px #fde047, 0 0 20px #fbbf24, 0 0 30px #f59e0b;
+}
+
+#magic-cursor-ring {
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid rgba(253, 224, 71, 0.85);
+    background: rgba(253, 224, 71, 0.08);
+    box-shadow: 0 0 16px rgba(253, 224, 71, 0.4), inset 0 0 12px rgba(253, 224, 71, 0.2);
+}
+
+/* Active / Visible state when cursor is on screen */
+body.cursor-active #magic-cursor-dot,
+body.cursor-active #magic-cursor-ring {
+    opacity: 1;
+}
+
+/* Hovering over clickable interactive elements */
+body.cursor-hover #magic-cursor-ring {
+    width: 52px;
+    height: 52px;
+    border-color: #f472b6;
+    background: rgba(244, 114, 182, 0.18);
+    box-shadow: 0 0 24px rgba(244, 114, 182, 0.7), inset 0 0 15px rgba(244, 114, 182, 0.3);
+}
+
+body.cursor-hover #magic-cursor-dot {
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    box-shadow: 0 0 15px #ffffff, 0 0 25px #f472b6, 0 0 35px #e879f9;
+}
+
+/* Mouse Pressed / Click state */
+body.cursor-click #magic-cursor-ring {
+    width: 24px;
+    height: 24px;
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.3);
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
+}
+
+/* Hide default hardware mouse cursor on devices supporting hover */
+@media (pointer: fine) {
+    html, body, a, button, input, select, textarea, label, [role="button"], .btn, .interactive {
+        cursor: none !important;
+    }
+}

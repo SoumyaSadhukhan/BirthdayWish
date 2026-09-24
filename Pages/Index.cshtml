@@ -78,8 +78,10 @@
                 actionContainer.style.display = 'block';
                 gsap.to(actionContainer, { opacity: 1, y: -10, duration: 1, ease: 'power2.out' });
 
-                if (window.AngelGuide && typeof window.AngelGuide.setFinished === 'function') {
-                    window.AngelGuide.setFinished();
+                if (window.angelController) {
+                    window.angelController.setStepMessage(msgFinished, true);
+                } else {
+                    window.AngelCurrentStepMessage = msgFinished;
                 }
                 return;
             }
@@ -94,14 +96,17 @@
             document.getElementById("minutes").innerText = minutes.toString().padStart(2, '0');
             document.getElementById("seconds").innerText = seconds.toString().padStart(2, '0');
 
-            if (window.AngelGuide && typeof window.AngelGuide.sayWaiting === 'function') {
-                let timeParts = [];
-                if (days > 0) timeParts.push(`${days}d`);
-                if (hours > 0) timeParts.push(`${hours}h`);
-                if (minutes > 0) timeParts.push(`${minutes}m`);
-                timeParts.push(`${seconds}s`);
-                window.AngelGuide.sayWaiting(timeParts.join(' '));
-            }
+            let timeParts = [];
+            if (days > 0) timeParts.push(`${days}d`);
+            if (hours > 0) timeParts.push(`${hours}h`);
+            if (minutes > 0) timeParts.push(`${minutes}m`);
+            timeParts.push(`${seconds}s`);
+
+            const timeStr = timeParts.join(' ');
+            const formattedWaiting = msgWaiting.replace('{0}', timeStr);
+
+            // Continuously update AngelCurrentStepMessage with live remaining countdown time
+            window.AngelCurrentStepMessage = formattedWaiting;
         }
 
         updateCountdown();

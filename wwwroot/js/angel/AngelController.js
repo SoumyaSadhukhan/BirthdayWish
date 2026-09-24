@@ -176,7 +176,7 @@ class AngelController {
         } else if (path.includes('gift')) {
             return msgs.giftInitial || "Tap the gift box to open your birthday surprises! 🎁✨";
         } else {
-            return null;
+            return msgs.indexWaiting || null;
         }
     }
 

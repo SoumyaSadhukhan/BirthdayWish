@@ -101,53 +101,16 @@ class AngelDialogue {
         const isMobile = window.innerWidth <= 650;
         
         // 3D Bird Bounding Radius on 2D Screen (wingspan + body clearance)
-        const birdRadiusX = isMobile ? 65 : 110; 
-        const birdRadiusY = isMobile ? 50 : 85; 
+        const birdRadiusX = isMobile ? 55 : 85; 
+        const birdRadiusY = isMobile ? 45 : 65; 
 
         this.bubbleElem.className = 'active'; // Reset arrow classes
 
         const bubbleRect = this.bubbleElem.getBoundingClientRect();
-        const bW = bubbleRect.width || (isMobile ? 240 : 280);
+        const bW = bubbleRect.width || (isMobile ? 180 : 210);
         const bH = bubbleRect.height || 100;
 
         const margin = 15; // Gap between speech bubble and screen edge
-        let arrowClass = 'arrow-bottom';
-
-        let left = 0;
-        let top = 0;
-
-        // Evaluate available space on all 4 sides to guarantee ZERO overlap with bird view
-        const spaceAbove = screenY - birdRadiusY - bH - 15;
-        const spaceBelow = window.innerHeight - (screenY + birdRadiusY + bH + 15);
-        const spaceLeft = screenX - birdRadiusX - bW - 15;
-        const spaceRight = window.innerWidth - (screenX + birdRadiusX + bW + 15);
-
-        if (spaceAbove >= margin) {
-            // Place ABOVE bird
-            arrowClass = 'arrow-bottom';
-            left = screenX - (bW / 2);
-            top = screenY - birdRadiusY - bH - 12;
-        } else if (spaceBelow >= margin) {
-            // Place BELOW bird
-            arrowClass = 'arrow-top';
-            left = screenX - (bW / 2);
-            top = screenY + birdRadiusY + 12;
-        } else if (spaceLeft >= margin) {
-            // Place LEFT of bird
-            arrowClass = 'arrow-right';
-            left = screenX - birdRadiusX - bW - 12;
-            top = screenY - (bH / 2);
-        } else if (spaceRight >= margin) {
-            // Place RIGHT of bird
-            arrowClass = 'arrow-left';
-            left = screenX + birdRadiusX + 12;
-            top = screenY - (bH / 2);
-        } else {
-            // Default fallback above bird with strict clearance
-            arrowClass = 'arrow-bottom';
-            left = screenX - (bW / 2);
-            top = Math.max(margin, screenY - birdRadiusY - bH - 10);
-        }
 
         // 100% Strict Viewport Clamping inside 90vw * 90vh centered box (5vw to 95vw, 5vh to 95vh)
         const boxLeftMargin = Math.max(15, window.innerWidth * 0.05);
@@ -155,11 +118,44 @@ class AngelDialogue {
         const boxTopMargin = Math.max(15, window.innerHeight * 0.05);
         const boxBottomMargin = Math.max(15, window.innerHeight * 0.05);
 
+        let arrowClass = 'arrow-right';
+        let left = 0;
+        let top = 0;
+
+        // PREFERRED POSITION: Place to the LEFT side of the parrot
+        const leftSidePos = screenX - birdRadiusX - bW - 12;
+        const rightSidePos = screenX + birdRadiusX + 12;
+
+        // Shift bubble higher up (placing ~80% of bubble height above bird center)
+        const higherTop = screenY - (bH * 0.8);
+
+        if (leftSidePos >= boxLeftMargin) {
+            // Place to the LEFT side of the parrot
+            arrowClass = 'arrow-right';
+            left = leftSidePos;
+            top = higherTop;
+        } else if (rightSidePos + bW <= window.innerWidth - boxRightMargin) {
+            // Place to the RIGHT side of the parrot
+            arrowClass = 'arrow-left';
+            left = rightSidePos;
+            top = higherTop;
+        } else if (screenY - birdRadiusY - bH - 12 >= boxTopMargin) {
+            // Fallback: Place ABOVE
+            arrowClass = 'arrow-bottom';
+            left = Math.max(boxLeftMargin, screenX - (bW / 2));
+            top = screenY - birdRadiusY - bH - 12;
+        } else {
+            // Fallback: Place BELOW
+            arrowClass = 'arrow-top';
+            left = Math.max(boxLeftMargin, screenX - (bW / 2));
+            top = screenY + birdRadiusY + 12;
+        }
+
         left = Math.max(boxLeftMargin, Math.min(window.innerWidth - bW - boxRightMargin, left));
         top = Math.max(boxTopMargin, Math.min(window.innerHeight - bH - boxBottomMargin, top));
 
         // ZERO OVERLAP SAFETY CHECK:
-        // If clamped bubble box intersects bird bounding box, push bubble away
+        // If clamped bubble box intersects bird bounding box, push bubble to the left
         const birdMinX = screenX - birdRadiusX;
         const birdMaxX = screenX + birdRadiusX;
         const birdMinY = screenY - birdRadiusY;
@@ -173,15 +169,26 @@ class AngelDialogue {
         const overlaps = (bubbleMinX < birdMaxX && bubbleMaxX > birdMinX && bubbleMinY < birdMaxY && bubbleMaxY > birdMinY);
 
         if (overlaps) {
-            if (arrowClass === 'arrow-bottom') {
-                top = Math.max(margin, birdMinY - bH - 10);
-            } else if (arrowClass === 'arrow-top') {
-                top = Math.min(window.innerHeight - bH - margin, birdMaxY + 10);
-            } else if (arrowClass === 'arrow-right') {
+            if (arrowClass === 'arrow-right') {
                 left = Math.max(margin, birdMinX - bW - 10);
             } else if (arrowClass === 'arrow-left') {
                 left = Math.min(window.innerWidth - bW - margin, birdMaxX + 10);
+            } else if (arrowClass === 'arrow-bottom') {
+                top = Math.max(margin, birdMinY - bH - 10);
+            } else if (arrowClass === 'arrow-top') {
+                top = Math.min(window.innerHeight - bH - margin, birdMaxY + 10);
             }
+        }
+
+        // Calculate dynamic arrow position pointing directly at bird center
+        if (arrowClass === 'arrow-right' || arrowClass === 'arrow-left') {
+            const relY = screenY - top;
+            const arrowY = Math.max(16, Math.min(bH - 16, relY));
+            this.bubbleElem.style.setProperty('--arrow-y', `${arrowY}px`);
+        } else {
+            const relX = screenX - left;
+            const arrowX = Math.max(16, Math.min(bW - 16, relX));
+            this.bubbleElem.style.setProperty('--arrow-x', `${arrowX}px`);
         }
 
         this.bubbleElem.classList.add(arrowClass);

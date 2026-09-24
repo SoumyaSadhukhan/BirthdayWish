@@ -73,8 +73,8 @@ class AngelFlight {
         const boxMaxY = window.innerHeight * 0.95;
 
         // Internal Bird Radius Clearance to guarantee 0.0001% of bird never leaves 90vw * 90vh box
-        const padX = isMobile ? 55 : 95;
-        const padY = isMobile ? 45 : 75;
+        const padX = isMobile ? 40 : 95;
+        const padY = isMobile ? 35 : 75;
 
         const clampedX = Math.max(boxMinX + padX, Math.min(boxMaxX - padX, screenX));
         const clampedY = Math.max(boxMinY + padY, Math.min(boxMaxY - padY, screenY));

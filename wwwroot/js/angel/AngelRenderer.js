@@ -220,10 +220,10 @@ class AngelRenderer {
         const height = window.innerHeight;
         this.isMobile = width <= 650;
         
-        // Responsive visual target height in pixels (significantly smaller)
+        // Responsive visual target height in pixels
         let targetHeightPx = 140; // Desktop
-        if (width <= 1024) targetHeightPx = 110; // Tablet
-        if (width <= 650) targetHeightPx = 80; // Mobile
+        if (width <= 1024) targetHeightPx = 125; // Tablet
+        if (width <= 650) targetHeightPx = 120; // Mobile
         
         // Camera properties: fov=45, distance=10
         const visibleHeightWorld = 2 * Math.tan((45 * Math.PI / 180) / 2) * 10;
