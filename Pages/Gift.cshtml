@@ -197,15 +197,18 @@
         width: 136px;
         height: 90px;
         background-color: #fffdf2;
-        background-image: linear-gradient(120deg, #fffcf3 0%, #fdf5e0 100%);
+        background-image: linear-gradient(120deg, #fffef7 0%, #fef9e7 100%);
         z-index: 2;
         padding: 10px;
-        font-family: 'Caveat', cursive;
-        font-size: 0.9rem;
-        color: #4b5563;
+        font-family: 'Caveat', cursive, sans-serif;
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.5;
+        color: #111827;
         box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.1);
-        border-radius: 2px;
+        border-radius: 4px;
         overflow: hidden;
+        word-wrap: break-word;
     }
 
     .photo-stack {
@@ -281,19 +284,27 @@
         filter: brightness(1.2);
     }
     
-    @@media (max-width: 400px) {
-        .photo-card {
-            width: 240px;
-            height: 300px;
+    @@media (max-width: 650px) {
+        .glass-panel {
+            padding: 2.5rem 1rem !important;
         }
-        
+        .photo-stack {
+            width: 220px;
+            height: 270px;
+        }
+        .photo-caption {
+            font-size: 1.1rem;
+            bottom: 14px;
+        }
         .puzzle-board {
-            transform: scale(0.75);
-            margin: -40px auto;
+            transform: scale(0.78);
+            margin: -35px auto;
         }
-        
         #final-message h1 {
-            font-size: 2.2rem !important;
+            font-size: 2.1rem !important;
+        }
+        #final-message p {
+            font-size: 1.25rem !important;
         }
     }
 
@@ -579,11 +590,11 @@
                             tl.to('#wax-seal', { opacity: 0, scale: 0, duration: 0.3 }, 0);
                             tl.to('#envelope-flap', { rotationX: 180, duration: 0.5, ease: 'power2.inOut', zIndex: 1 }, 0);
                             
-                            const isMobile = window.innerWidth <= 400;
+                            const isMobile = window.innerWidth <= 650;
                             
                             // 1. Slide letter straight UP out of the envelope first (keep it narrow so it doesn't clip the sides)
                             tl.to('#letter-paper', {
-                                y: -95, 
+                                y: isMobile ? -100 : -120, 
                                 duration: 0.4, 
                                 ease: 'power2.out'
                             }, "+=0.1");
@@ -592,17 +603,25 @@
                             tl.set('#letter-paper', { zIndex: 10 });
                             
                             // 3. Expand and scale the letter to reading size
+                            const targetW = isMobile ? Math.min(window.innerWidth * 0.88, 330) : 480;
+                            const offsetX = - (targetW / 2) + 75; // Center horizontally relative to envelope (150px wide)
+                            
                             tl.to('#letter-paper', {
                                 y: isMobile ? -30 : -50,
-                                x: isMobile ? -50 : -80, // Center horizontally
+                                x: offsetX, // Center horizontally
                                 scale: 1, 
-                                width: isMobile ? '240px' : '300px',
+                                width: targetW + 'px',
+                                maxWidth: '92vw',
                                 height: 'auto',
-                                minHeight: '200px',
-                                padding: '20px',
-                                fontSize: isMobile ? '1.2rem' : '1.4rem',
-                                color: '#1f2937',
-                                boxShadow: '0 20px 40px rgba(0,0,0,0.3), inset 0 0 20px rgba(0,0,0,0.05)',
+                                minHeight: isMobile ? '210px' : '260px',
+                                padding: isMobile ? '22px 20px' : '35px 40px',
+                                fontSize: isMobile ? '1.45rem' : '1.85rem',
+                                fontWeight: '700',
+                                lineHeight: '1.65',
+                                color: '#111827',
+                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 0 20px rgba(253, 245, 224, 0.5)',
+                                borderRadius: '12px',
+                                border: '1px solid #e5e7eb',
                                 duration: 0.6, 
                                 ease: 'power2.out'
                             });
@@ -843,10 +862,12 @@
 
         function formatPhraseForScreen(rawPhrase) {
             const isMobile = window.innerWidth <= 650;
+            if (rawPhrase.includes('\n')) {
+                return rawPhrase.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            }
             const text = rawPhrase.replace(/\r/g, '').replace(/\n/g, ' ');
             const words = text.split(' ').filter(w => w.trim().length > 0);
             
-            // Max 7 chars per line on mobile for huge readable words! Max 12 on desktop.
             const maxCharsPerLine = isMobile ? 7 : 12;
             const lines = [];
             let currentLine = '';
@@ -871,8 +892,8 @@
             const screenH = window.innerHeight;
             const isMobile = screenW <= 650;
             
-            const w = Math.min(screenW * 0.94, isMobile ? 450 : 1100);
-            const h = Math.min(screenH * 0.80, isMobile ? 550 : 750);
+            const w = Math.min(screenW * 0.96, isMobile ? 480 : 1350);
+            const h = Math.min(screenH * 0.85, isMobile ? 650 : 850);
             canvas.width = w;
             canvas.height = h;
             
@@ -884,25 +905,26 @@
             const lineCount = lines.length;
             const maxLineLen = Math.max(...lines.map(l => l.length), 3);
             
-            let fontByWidth = Math.floor((w * 0.88) / (maxLineLen * 0.65));
-            let fontByHeight = Math.floor((h * 0.82) / (lineCount * 1.3));
+            let fontByWidth = Math.floor((w * 0.92) / (maxLineLen * 0.58));
+            let fontByHeight = Math.floor((h * 0.85) / (lineCount * 1.3));
             let fontSize = Math.min(fontByWidth, fontByHeight);
-            fontSize = Math.max(isMobile ? 36 : 60, Math.min(fontSize, isMobile ? 65 : 110));
+            fontSize = Math.max(isMobile ? 48 : 85, Math.min(fontSize, isMobile ? 95 : 160));
             
-            ctx.font = `bold ${fontSize}px "Outfit", system-ui, sans-serif`;
+            ctx.font = `900 ${fontSize}px "Outfit", system-ui, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = 'white';
             
-            const startY = (h / 2) - ((lineCount - 1) * fontSize * 0.65);
+            const lineSpacing = fontSize * 1.25;
+            const startY = (h / 2) - ((lineCount - 1) * lineSpacing / 2);
             
             lines.forEach((line, idx) => {
-                ctx.fillText(line.trim(), w / 2, startY + (idx * fontSize * 1.25));
+                ctx.fillText(line.trim(), w / 2, startY + (idx * lineSpacing));
             });
             
             const imgData = ctx.getImageData(0, 0, w, h).data;
             const rawCoords = [];
-            const step = isMobile ? 5 : 7;
+            const step = isMobile ? 4 : 5;
             
             for (let y = 0; y < h; y += step) {
                 for (let x = 0; x < w; x += step) {
@@ -1026,7 +1048,7 @@
             clearAllDroneTimeouts();
             
             const isMobile = window.innerWidth <= 650;
-            const numDrones = isMobile ? 260 : 360;
+            const numDrones = isMobile ? 340 : 500;
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
             
@@ -1035,7 +1057,7 @@
                 drone.style.position = 'absolute';
                 drone.style.left = '0';
                 drone.style.top = '0';
-                drone.style.fontSize = isMobile ? '1.15rem' : '1.35rem';
+                drone.style.fontSize = isMobile ? '1.25rem' : '1.55rem';
                 drone.style.filter = 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7))';
                 drone.style.opacity = '0';
                 drone.style.transform = 'translate(-50%, -50%)';
