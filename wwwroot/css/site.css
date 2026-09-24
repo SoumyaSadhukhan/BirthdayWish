@@ -232,10 +232,14 @@ p {
     flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: clamp(4px, 1.5vw, 16px) !important;
+    gap: clamp(6px, 2.2vw, 24px) !important;
     width: 100% !important;
     max-width: 100% !important;
-    margin: 1rem auto 0 auto !important;
+    margin: 0.75rem auto 0 auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     white-space: nowrap !important;
 }
 
@@ -243,34 +247,34 @@ p {
     display: flex !important;
     flex-direction: row !important;
     align-items: baseline !important;
-    gap: clamp(2px, 0.8vw, 6px) !important;
+    gap: clamp(3px, 1vw, 8px) !important;
     white-space: nowrap !important;
 }
 
 .timer-digit {
-    font-size: clamp(1.2rem, 3.8vw, 2.4rem) !important;
+    font-size: clamp(1.8rem, 5.5vw, 3.4rem) !important;
     font-weight: 800 !important;
     color: #fde047 !important;
     line-height: 1 !important;
-    text-shadow: 0 0 15px rgba(253, 224, 71, 0.8), 0 3px 8px rgba(0, 0, 0, 0.9) !important;
+    text-shadow: 0 0 20px rgba(253, 224, 71, 0.95), 0 3px 10px rgba(0, 0, 0, 0.95) !important;
 }
 
 .timer-label {
-    font-size: clamp(0.55rem, 1.5vw, 0.85rem) !important;
+    font-size: clamp(0.75rem, 2vw, 1.15rem) !important;
     font-weight: 700 !important;
     color: #ffffff !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9) !important;
+    letter-spacing: 0.8px !important;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9) !important;
 }
 
 .time-separator {
-    font-size: clamp(1.1rem, 3.2vw, 2.0rem) !important;
+    font-size: clamp(1.5rem, 4.8vw, 2.8rem) !important;
     font-weight: 800 !important;
     color: #f472b6 !important;
     line-height: 1 !important;
-    text-shadow: 0 0 12px rgba(244, 114, 182, 0.8) !important;
-    margin: 0 clamp(1px, 0.5vw, 4px) !important;
+    text-shadow: 0 0 15px rgba(244, 114, 182, 0.9) !important;
+    margin: 0 clamp(2px, 0.8vw, 6px) !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -278,7 +282,16 @@ p {
 }
 
 /* Responsive Overrides */
+#countdown-scene .glass-panel {
+    padding: clamp(2rem, 5vh, 3.5rem) clamp(2.5rem, 8vw, 6.5rem) clamp(3rem, 7vh, 5rem) clamp(2.5rem, 8vw, 6.5rem) !important;
+}
+
 @media (max-width: 768px), (max-height: 800px) {
+    #countdown-scene .glass-panel {
+        padding: 2rem 1.8rem 2.8rem 1.8rem !important;
+        max-width: 95vw !important;
+    }
+
     h1 {
         font-size: 2.8rem;
     }
@@ -289,13 +302,13 @@ p {
     }
     
     p {
-        font-size: 1.1rem;
+        font-size: 1.15rem;
     }
     
     .glass-panel {
-        padding: 1.5rem !important;
-        border-radius: 16px;
-        transform: scale(0.85);
+        padding: 1.8rem 1.5rem !important;
+        border-radius: 20px;
+        transform: scale(0.95);
         transform-origin: center center;
     }
     
@@ -304,36 +317,102 @@ p {
     }
     
     .btn-premium {
-        padding: 12px 30px;
-        font-size: 1rem;
+        padding: 14px 34px;
+        font-size: 1.1rem;
     }
     
     #live-age-container {
-        transform: scale(0.7);
+        transform: scale(0.75);
         transform-origin: top right;
         top: 10px !important;
         right: 10px !important;
     }
+
+    #countdown-timer, #angel-demo-target {
+        gap: clamp(4px, 1.8vw, 14px) !important;
+    }
+
+    .timer-digit {
+        font-size: clamp(1.4rem, 4.8vw, 2.2rem) !important;
+    }
+
+    .timer-label {
+        font-size: clamp(0.65rem, 1.8vw, 0.9rem) !important;
+    }
+
+    .time-separator {
+        font-size: clamp(1.2rem, 4.0vw, 2.0rem) !important;
+    }
 }
 
-@media (max-width: 480px), (max-height: 650px) {
+@media (max-width: 600px), (max-height: 650px) {
+    #countdown-scene .glass-panel {
+        padding: 1.5rem 0.6rem 2.2rem 0.6rem !important;
+        max-width: 96vw !important;
+        width: 96vw !important;
+    }
+
     h1 {
         font-size: 2.2rem;
     }
     
     h2 {
-        font-size: 1.5rem;
+        font-size: 1.45rem;
     }
     
     .glass-panel {
-        padding: 1rem !important;
-        transform: scale(0.65);
+        padding: 1.25rem 0.6rem !important;
+        transform: none !important;
     }
     
     #live-age-container {
-        transform: scale(0.6);
+        transform: scale(0.65);
         top: 5px !important;
         right: 5px !important;
+    }
+
+    #countdown-timer, #angel-demo-target {
+        gap: clamp(2px, 1.2vw, 8px) !important;
+    }
+
+    .time-block {
+        gap: clamp(1px, 0.6vw, 3px) !important;
+    }
+
+    .timer-digit {
+        font-size: clamp(1.15rem, 4.2vw, 1.55rem) !important;
+    }
+
+    .timer-label {
+        font-size: clamp(0.52rem, 1.5vw, 0.72rem) !important;
+        letter-spacing: 0.2px !important;
+    }
+
+    .time-separator {
+        font-size: clamp(0.95rem, 3.6vw, 1.35rem) !important;
+        margin: 0 clamp(1px, 0.4vw, 2px) !important;
+    }
+}
+
+@media (max-width: 380px) {
+    #countdown-scene .glass-panel {
+        padding: 1.2rem 0.4rem 1.8rem 0.4rem !important;
+    }
+
+    #countdown-timer, #angel-demo-target {
+        gap: 2px !important;
+    }
+
+    .timer-digit {
+        font-size: 1.05rem !important;
+    }
+
+    .timer-label {
+        font-size: 0.5rem !important;
+    }
+
+    .time-separator {
+        font-size: 0.9rem !important;
     }
 }
 
