@@ -94,7 +94,7 @@ class AngelDialogue {
     update() {
         if (!this.isVisible || !this.bubbleElem || !this.modelGroup) return;
 
-        // Project 3D Angel position to 2D Screen Coordinates
+        // Project 3D Bird position to 2D Screen Coordinates
         const angelWorldPos = this.modelGroup.position.clone();
         const vector = angelWorldPos.project(this.camera);
 
@@ -102,58 +102,92 @@ class AngelDialogue {
         const screenY = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
 
         const isMobile = window.innerWidth <= 650;
-        const angelRadius = isMobile ? 40 : 80; 
+        
+        // 3D Bird Bounding Radius on 2D Screen (wingspan + body clearance)
+        const birdRadiusX = isMobile ? 65 : 110; 
+        const birdRadiusY = isMobile ? 50 : 85; 
 
-        this.bubbleElem.className = 'active'; // Reset classes
-        let arrowClass = 'arrow-bottom';
+        this.bubbleElem.className = 'active'; // Reset arrow classes
 
         const bubbleRect = this.bubbleElem.getBoundingClientRect();
         const bW = bubbleRect.width || (isMobile ? 240 : 280);
         const bH = bubbleRect.height || 100;
-        
-        let targetX = screenX;
-        let targetY = screenY - angelRadius; // Point above angel
 
-        // Edge detection to place bubble correctly
-        if (screenX > window.innerWidth - bW) {
-            // Near right edge -> Place on left side
-            targetX = screenX - (angelRadius * 0.8);
-            targetY = screenY;
-            arrowClass = 'arrow-right';
-        } else if (screenX < bW) {
-            // Near left edge -> Place on right side
-            targetX = screenX + (angelRadius * 0.8);
-            targetY = screenY;
-            arrowClass = 'arrow-left';
-        } else if (screenY - bH - angelRadius < 10) {
-            // Near top edge -> Place below angel
-            targetY = screenY + angelRadius;
-            arrowClass = 'arrow-top';
-        }
-
-        this.bubbleElem.classList.add(arrowClass);
+        const margin = 15; // Gap between speech bubble and screen edge
+        let arrowClass = 'arrow-bottom';
 
         let left = 0;
         let top = 0;
 
-        if (arrowClass === 'arrow-bottom') {
-            left = targetX - (bW / 2);
-            top = targetY - bH;
-        } else if (arrowClass === 'arrow-top') {
-            left = targetX - (bW / 2);
-            top = targetY;
-        } else if (arrowClass === 'arrow-left') {
-            left = targetX;
-            top = targetY - (bH / 2);
-        } else if (arrowClass === 'arrow-right') {
-            left = targetX - bW;
-            top = targetY - (bH / 2);
+        // Evaluate available space on all 4 sides to guarantee ZERO overlap with bird view
+        const spaceAbove = screenY - birdRadiusY - bH - 15;
+        const spaceBelow = window.innerHeight - (screenY + birdRadiusY + bH + 15);
+        const spaceLeft = screenX - birdRadiusX - bW - 15;
+        const spaceRight = window.innerWidth - (screenX + birdRadiusX + bW + 15);
+
+        if (spaceAbove >= margin) {
+            // Place ABOVE bird
+            arrowClass = 'arrow-bottom';
+            left = screenX - (bW / 2);
+            top = screenY - birdRadiusY - bH - 12;
+        } else if (spaceBelow >= margin) {
+            // Place BELOW bird
+            arrowClass = 'arrow-top';
+            left = screenX - (bW / 2);
+            top = screenY + birdRadiusY + 12;
+        } else if (spaceLeft >= margin) {
+            // Place LEFT of bird
+            arrowClass = 'arrow-right';
+            left = screenX - birdRadiusX - bW - 12;
+            top = screenY - (bH / 2);
+        } else if (spaceRight >= margin) {
+            // Place RIGHT of bird
+            arrowClass = 'arrow-left';
+            left = screenX + birdRadiusX + 12;
+            top = screenY - (bH / 2);
+        } else {
+            // Default fallback above bird with strict clearance
+            arrowClass = 'arrow-bottom';
+            left = screenX - (bW / 2);
+            top = Math.max(margin, screenY - birdRadiusY - bH - 10);
         }
 
-        // Final safety clamp so it NEVER leaves viewport
-        left = Math.max(10, Math.min(window.innerWidth - bW - 10, left));
-        top = Math.max(10, Math.min(window.innerHeight - bH - 10, top));
+        // 100% Strict Viewport Clamping inside 90vw * 90vh centered box (5vw to 95vw, 5vh to 95vh)
+        const boxLeftMargin = Math.max(15, window.innerWidth * 0.05);
+        const boxRightMargin = Math.max(15, window.innerWidth * 0.05);
+        const boxTopMargin = Math.max(15, window.innerHeight * 0.05);
+        const boxBottomMargin = Math.max(15, window.innerHeight * 0.05);
 
+        left = Math.max(boxLeftMargin, Math.min(window.innerWidth - bW - boxRightMargin, left));
+        top = Math.max(boxTopMargin, Math.min(window.innerHeight - bH - boxBottomMargin, top));
+
+        // ZERO OVERLAP SAFETY CHECK:
+        // If clamped bubble box intersects bird bounding box, push bubble away
+        const birdMinX = screenX - birdRadiusX;
+        const birdMaxX = screenX + birdRadiusX;
+        const birdMinY = screenY - birdRadiusY;
+        const birdMaxY = screenY + birdRadiusY;
+
+        const bubbleMinX = left;
+        const bubbleMaxX = left + bW;
+        const bubbleMinY = top;
+        const bubbleMaxY = top + bH;
+
+        const overlaps = (bubbleMinX < birdMaxX && bubbleMaxX > birdMinX && bubbleMinY < birdMaxY && bubbleMaxY > birdMinY);
+
+        if (overlaps) {
+            if (arrowClass === 'arrow-bottom') {
+                top = Math.max(margin, birdMinY - bH - 10);
+            } else if (arrowClass === 'arrow-top') {
+                top = Math.min(window.innerHeight - bH - margin, birdMaxY + 10);
+            } else if (arrowClass === 'arrow-right') {
+                left = Math.max(margin, birdMinX - bW - 10);
+            } else if (arrowClass === 'arrow-left') {
+                left = Math.min(window.innerWidth - bW - margin, birdMaxX + 10);
+            }
+        }
+
+        this.bubbleElem.classList.add(arrowClass);
         this.bubbleElem.style.left = `${left}px`;
         this.bubbleElem.style.top = `${top}px`;
     }

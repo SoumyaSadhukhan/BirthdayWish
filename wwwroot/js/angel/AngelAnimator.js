@@ -40,15 +40,21 @@ class AngelAnimator {
 
         let targetAction = this.actions[clipName];
 
+        // Case-insensitive / partial match check
+        if (!targetAction) {
+            const lowerReq = clipName.toLowerCase();
+            const matchingKey = Object.keys(this.actions).find(k => {
+                const lowerK = k.toLowerCase();
+                return lowerK.includes(lowerReq) || (lowerReq === 'idle' && (lowerK.includes('fly') || lowerK.includes('hover')));
+            });
+            if (matchingKey) {
+                targetAction = this.actions[matchingKey];
+            }
+        }
+
         // Safe Fallback Logic if requested animation clip does not exist
         if (!targetAction) {
-            if (clipName === 'Fly' || clipName === 'Hover' || clipName === 'TakeOff') {
-                targetAction = this.actions['Idle'] || this.actions['Hover'];
-            } else if (clipName === 'Talk' || clipName === 'Point') {
-                targetAction = this.actions['Wave'] || this.actions['Idle'];
-            } else {
-                targetAction = this.actions['Idle'] || Object.values(this.actions)[0];
-            }
+            targetAction = this.actions['02-flying'] || this.actions['01-flip'] || Object.values(this.actions)[0];
         }
 
         if (!targetAction) return;

@@ -17,6 +17,19 @@
     pointer-events: none !important;
 }
 
+/* 90vh * 90vw Centered Invisible Boundary Box */
+#angel-boundary-box {
+    position: fixed;
+    top: 5vh;
+    left: 5vw;
+    width: 90vw;
+    height: 90vh;
+    pointer-events: none !important;
+    z-index: 8999;
+    box-sizing: border-box;
+    visibility: hidden;
+}
+
 /* 3D Speech Bubble System */
 #angel-speech-bubble {
     position: fixed;

@@ -91,42 +91,29 @@ class AngelController {
         const flightSpeed = this.config.flySpeed || 3.0; // World units per second
 
         setInterval(() => {
-            if (this.state === AngelState.Hovering && !this.dialogue.isVisible) {
+            if (this.config.roamingEnabled !== false && !this.config.fixedPosition && this.state === AngelState.Hovering && !this.dialogue.isVisible) {
                 const camera = this.renderer.camera;
-                const currentPos = this.renderer.modelGroup.position.clone();
-                let randomPos = currentPos.clone();
-                let valid = false;
-
-                // Find a completely random point that is a minimum distance away
-                for (let i = 0; i < 15; i++) {
-                    const ndcX = (Math.random() * 1.8) - 0.9;
-                    const ndcY = (Math.random() * 1.8) - 0.9;
-                    
-                    const vector = new THREE.Vector3(ndcX, ndcY, 0.5);
-                    vector.unproject(camera);
-                    
-                    const dir = vector.sub(camera.position).normalize();
-                    const distanceZ = (0 - camera.position.z) / dir.z; 
-                    let tempPos = camera.position.clone().add(dir.multiplyScalar(distanceZ));
-                    
-                    // Simulate safety clamping
-                    tempPos = this.flight.getSafeWorldPosition(tempPos);
-                    
-                    // Enforce minimum distance (e.g. at least 3.0 world units)
-                    if (currentPos.distanceTo(tempPos) > 3.0) {
-                        randomPos = tempPos;
-                        valid = true;
-                        break;
-                    }
-                }
-
-                if (!valid) return; // Wait for next tick if stuck
-
-                // Calculate duration dynamically to maintain constant speed
-                const dist = currentPos.distanceTo(randomPos);
-                const durationMs = (dist / flightSpeed) * 1000;
                 
-                this.flight.flyTo(randomPos, { duration: durationMs });
+                // Pick random NDC screen coordinates inside safe viewing area
+                const randomNdcX = (Math.random() - 0.5) * 1.3; // -0.65 to +0.65
+                const randomNdcY = (Math.random() - 0.5) * 1.1; // -0.55 to +0.55
+                
+                const vector = new THREE.Vector3(randomNdcX, randomNdcY, 0.5);
+                vector.unproject(camera);
+                
+                const dir = vector.sub(camera.position).normalize();
+                const distanceZ = (0 - camera.position.z) / dir.z; 
+                let targetPos = camera.position.clone().add(dir.multiplyScalar(distanceZ));
+                
+                targetPos = this.flight.getSafeWorldPosition(targetPos);
+                
+                const currentPos = this.renderer.modelGroup.position;
+                const dist = currentPos.distanceTo(targetPos);
+                
+                if (dist > 0.6) {
+                    const durationMs = Math.max(1500, (dist / flightSpeed) * 1000);
+                    this.flight.flyTo(targetPos, { duration: durationMs });
+                }
             }
         }, standingTime);
     }
@@ -140,6 +127,33 @@ class AngelController {
     say(text, options = {}) {
         if (this.dialogue) {
             this.dialogue.say(text, options);
+        }
+    }
+
+    triggerStandingPopup() {
+        if (!this.dialogue) return;
+        const standingMsg = this.getCurrentPageStandingMessage();
+        const durationMs = (this.config.standingTimeSec || 5.0) * 1000;
+        this.dialogue.say(standingMsg, { duration: durationMs });
+    }
+
+    getCurrentPageStandingMessage() {
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('wish')) {
+            return "Happy Birthday Piu! Today is all about you! 🎂✨";
+        } else if (path.includes('cake')) {
+            return "Make a wish and blow out the candle! 🕯️✨";
+        } else if (path.includes('gift')) {
+            return "Tap the gift box to open your birthday surprises! 🎁✨";
+        } else {
+            const phrases = [
+                "Shh... magical surprises await you! ✨",
+                "I'm right here celebrating with you! 🎉",
+                "Wishing you the happiest birthday ever! 💖",
+                "Tap around to explore your special day! 🌟"
+            ];
+            const randomIdx = Math.floor(Math.random() * phrases.length);
+            return phrases[randomIdx];
         }
     }
 
@@ -179,7 +193,7 @@ class AngelController {
             this.interaction.update();
 
             // Render scene
-            this.renderer.render();
+            this.renderer.render(delta);
 
             requestAnimationFrame(loop);
         };

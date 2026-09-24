@@ -9,8 +9,12 @@
 <script>
     window.AngelConfig = {
         enabled: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(guideEnabled)),
+        roamingEnabled: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<bool>("BirthdayConfig:AngelGuideMessages:RoamingEnabled", true))),
+        fixedPosition: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<bool>("BirthdayConfig:AngelGuideMessages:FixedPosition", false))),
         standingTimeSec: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:StandingTimeSec", 5.0))),
-        flySpeed: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:FlySpeed", 3.0))),
+        flyTimePerUnitSec: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:FlyTimePerUnitSec", 1.0))),
+        takeoffTransitionTimeSec: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:TakeoffTransitionTimeSec", 0.5))),
+        landingTransitionTimeSec: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:LandingTransitionTimeSec", 0.7))),
         modelUrl: "/models/angel/angel.glb",
         initialPosition: { x: 2, y: 1.2, z: 0 },
         scale: 1.0,
