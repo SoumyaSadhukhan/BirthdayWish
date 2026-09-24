@@ -11,7 +11,7 @@
     <div class="glass-panel p-3 p-sm-4 p-md-5" style="max-width: 95vw;">
         <h2 class="mb-3 mb-md-4">@Config["BirthdayConfig:IndexHeading"]</h2>
         
-        <div id="countdown-timer" class="d-flex flex-row flex-nowrap align-items-center justify-content-center">
+        <div id="angel-demo-target" class="d-flex flex-row flex-nowrap align-items-center justify-content-center">
             <div class="time-block d-flex flex-row align-items-baseline">
                 <span id="days" class="timer-digit">00</span>
                 <span class="timer-label">@Config["BirthdayConfig:IndexDaysLabel"]</span>
@@ -45,17 +45,42 @@
         const actionContainer = document.getElementById('action-container');
         let timerInterval;
 
+        const msgWaiting = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen1_Index_Waiting"])";
+        const msgFinished = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen1_Index_Finished"])";
+
+        window.AngelGuide = {
+            hasSpokenWaiting: false,
+            sayWaiting: function(timeString) {
+                if (!window.angelController || !window.angelController.isInitialized) return;
+                
+                // Only say the waiting message once after the angel has finished the intro
+                if (!this.hasSpokenWaiting && window.angelController.state === 'Hovering' && !window.angelController.dialogue.isVisible) {
+                    window.angelController.say(msgWaiting.replace('{0}', timeString), { duration: 8000 });
+                    this.hasSpokenWaiting = true;
+                }
+            },
+            setFinished: function() {
+                if (!window.angelController || !window.angelController.isInitialized) return;
+                window.angelController.say(msgFinished, { duration: 8000 });
+            }
+        };
+
         function updateCountdown() {
             const now = new Date().getTime();
             const distance = targetDate - now;
 
             if (distance <= 0) {
                 clearInterval(timerInterval);
-                document.getElementById('countdown-timer').style.display = 'none';
+                const timerElem = document.getElementById('angel-demo-target');
+                if (timerElem) timerElem.style.display = 'none';
                 
                 // Show continue button
                 actionContainer.style.display = 'block';
                 gsap.to(actionContainer, { opacity: 1, y: -10, duration: 1, ease: 'power2.out' });
+
+                if (window.AngelGuide && typeof window.AngelGuide.setFinished === 'function') {
+                    window.AngelGuide.setFinished();
+                }
                 return;
             }
 
@@ -68,6 +93,15 @@
             document.getElementById("hours").innerText = hours.toString().padStart(2, '0');
             document.getElementById("minutes").innerText = minutes.toString().padStart(2, '0');
             document.getElementById("seconds").innerText = seconds.toString().padStart(2, '0');
+
+            if (window.AngelGuide && typeof window.AngelGuide.sayWaiting === 'function') {
+                let timeParts = [];
+                if (days > 0) timeParts.push(`${days}d`);
+                if (hours > 0) timeParts.push(`${hours}h`);
+                if (minutes > 0) timeParts.push(`${minutes}m`);
+                timeParts.push(`${seconds}s`);
+                window.AngelGuide.sayWaiting(timeParts.join(' '));
+            }
         }
 
         updateCountdown();

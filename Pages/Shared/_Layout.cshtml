@@ -35,6 +35,9 @@
         @RenderBody()
     </main>
 
+    <!-- Disneyland Live Flying Angel Guide Component -->
+    @await Html.PartialAsync("_AngelGuide")
+
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

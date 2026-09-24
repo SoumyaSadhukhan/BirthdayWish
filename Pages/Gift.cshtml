@@ -483,6 +483,11 @@
         const puzzleRows = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<int>("BirthdayConfig:PuzzleGridRows", 4)));
         const puzzleCols = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<int>("BirthdayConfig:PuzzleGridCols", 4)));
         
+        const msgGiftEnvelope = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Envelope"])";
+        const msgGiftPhotos = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Photos"])";
+        const msgGiftPuzzle = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Puzzle"])";
+        const msgGiftDone = "@Html.Raw(Config["BirthdayConfig:AngelGuideMessages:Screen4_Gift_Done"])";
+        
         gsap.from('.glass-panel', { opacity: 0, scale: 0.9, duration: 1, ease: 'power2.out' });
         
         let isOpened = false;
@@ -625,6 +630,10 @@
                                 duration: 0.6, 
                                 ease: 'power2.out'
                             });
+
+                            if (window.angelController) {
+                                window.angelController.say(msgGiftEnvelope, { duration: 6000 });
+                            }
                             
                             return; // Stop here, so we don't fly it away yet
                         }
@@ -717,8 +726,10 @@
                             initPuzzle();
                             scramblePuzzle();
                             triggerParticleCelebration('puzzle');
+                            if (window.angelController) window.angelController.say(msgGiftPuzzle, { duration: 5000 });
                         } else if (index === 5) {
                             triggerParticleCelebration('photo');
+                            if (window.angelController) window.angelController.say(msgGiftPhotos, { duration: 5000 });
                         } else if (index === 4) {
                             triggerParticleCelebration('letter');
                         } else if (index === 3) {
@@ -833,6 +844,11 @@
             instruction.style.display = 'none';
             isDroneShowActive = true;
 
+            if (window.angelController) {
+                window.angelController.say(msgGiftDone, { duration: 7000 });
+                window.angelController.flyTo({x: 0, y: 4, z: -2}, {duration: 2500}); // Fly up
+            }
+
             // 1. Remove/fade out the surprise gift box container in an animated way
             const giftScene = document.getElementById('gift-scene');
             if (giftScene) {
@@ -862,26 +878,35 @@
 
         function formatPhraseForScreen(rawPhrase) {
             const isMobile = window.innerWidth <= 650;
-            if (rawPhrase.includes('\n')) {
-                return rawPhrase.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+            
+            const rawLines = rawPhrase.includes('\n') 
+                ? rawPhrase.split('\n').map(l => l.trim()).filter(l => l.length > 0)
+                : [rawPhrase.replace(/\r/g, '').replace(/\n/g, ' ').trim()];
+
+            if (!isMobile) {
+                return rawLines;
             }
-            const text = rawPhrase.replace(/\r/g, '').replace(/\n/g, ' ');
-            const words = text.split(' ').filter(w => w.trim().length > 0);
-            
-            const maxCharsPerLine = isMobile ? 7 : 12;
-            const lines = [];
-            let currentLine = '';
-            
-            words.forEach(w => {
-                if ((currentLine + ' ' + w).trim().length <= maxCharsPerLine) {
-                    currentLine = (currentLine + ' ' + w).trim();
-                } else {
-                    if (currentLine) lines.push(currentLine);
-                    currentLine = w;
-                }
+
+            // On Mobile: max 8 characters per line so text NEVER spills off the screen edges
+            const maxCharsPerLine = 8;
+            const formattedLines = [];
+
+            rawLines.forEach(line => {
+                const words = line.split(' ').filter(w => w.trim().length > 0);
+                let currentLine = '';
+
+                words.forEach(w => {
+                    if ((currentLine + ' ' + w).trim().length <= maxCharsPerLine) {
+                        currentLine = (currentLine + ' ' + w).trim();
+                    } else {
+                        if (currentLine) formattedLines.push(currentLine);
+                        currentLine = w;
+                    }
+                });
+                if (currentLine) formattedLines.push(currentLine);
             });
-            if (currentLine) lines.push(currentLine);
-            return lines;
+
+            return formattedLines;
         }
 
         function getTargetCoordsForPhrase(phraseText, droneCount) {
@@ -892,8 +917,8 @@
             const screenH = window.innerHeight;
             const isMobile = screenW <= 650;
             
-            const w = Math.min(screenW * 0.96, isMobile ? 480 : 1350);
-            const h = Math.min(screenH * 0.85, isMobile ? 650 : 850);
+            const w = Math.min(screenW * (isMobile ? 0.88 : 0.94), isMobile ? 360 : 1350);
+            const h = Math.min(screenH * (isMobile ? 0.72 : 0.85), isMobile ? 500 : 850);
             canvas.width = w;
             canvas.height = h;
             
@@ -905,17 +930,17 @@
             const lineCount = lines.length;
             const maxLineLen = Math.max(...lines.map(l => l.length), 3);
             
-            let fontByWidth = Math.floor((w * 0.92) / (maxLineLen * 0.58));
-            let fontByHeight = Math.floor((h * 0.85) / (lineCount * 1.3));
+            let fontByWidth = Math.floor((w * 0.85) / (maxLineLen * 0.58));
+            let fontByHeight = Math.floor((h * 0.80) / (lineCount * 1.35));
             let fontSize = Math.min(fontByWidth, fontByHeight);
-            fontSize = Math.max(isMobile ? 48 : 85, Math.min(fontSize, isMobile ? 95 : 160));
+            fontSize = Math.max(isMobile ? 28 : 80, Math.min(fontSize, isMobile ? 50 : 150));
             
             ctx.font = `900 ${fontSize}px "Outfit", system-ui, sans-serif`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = 'white';
             
-            const lineSpacing = fontSize * 1.25;
+            const lineSpacing = fontSize * (isMobile ? 1.35 : 1.25);
             const startY = (h / 2) - ((lineCount - 1) * lineSpacing / 2);
             
             lines.forEach((line, idx) => {
@@ -924,7 +949,7 @@
             
             const imgData = ctx.getImageData(0, 0, w, h).data;
             const rawCoords = [];
-            const step = isMobile ? 4 : 5;
+            const step = isMobile ? 5 : 5;
             
             for (let y = 0; y < h; y += step) {
                 for (let x = 0; x < w; x += step) {
@@ -1048,7 +1073,7 @@
             clearAllDroneTimeouts();
             
             const isMobile = window.innerWidth <= 650;
-            const numDrones = isMobile ? 340 : 500;
+            const numDrones = isMobile ? 200 : 480;
             const centerX = window.innerWidth / 2;
             const centerY = window.innerHeight / 2;
             
@@ -1057,7 +1082,7 @@
                 drone.style.position = 'absolute';
                 drone.style.left = '0';
                 drone.style.top = '0';
-                drone.style.fontSize = isMobile ? '1.25rem' : '1.55rem';
+                drone.style.fontSize = isMobile ? '0.95rem' : '1.5rem';
                 drone.style.filter = 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.7))';
                 drone.style.opacity = '0';
                 drone.style.transform = 'translate(-50%, -50%)';

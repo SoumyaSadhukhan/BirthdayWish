@@ -1,0 +1,183 @@
+/* 3D Angel Guide Stylesheet */
+#angel-canvas-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none !important;
+    z-index: 9000;
+    overflow: hidden;
+}
+
+#angel-canvas-container canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none !important;
+}
+
+/* 3D Speech Bubble System */
+#angel-speech-bubble {
+    position: fixed;
+    z-index: 9010;
+    pointer-events: auto !important;
+    background: rgba(20, 24, 40, 0.95);
+    border: 1px solid rgba(255, 210, 50, 0.7);
+    border-radius: 16px;
+    padding: 12px 16px;
+    width: min(280px, calc(100vw - 32px));
+    box-sizing: border-box;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    color: #ffffff;
+    font-family: 'Outfit', sans-serif;
+    opacity: 0;
+    scale: 0.8;
+    transition: opacity 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), scale 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    user-select: none;
+    -webkit-user-select: none;
+    /* Reset transform so JS can control exactly */
+    transform: translate(0, 0);
+}
+
+#angel-speech-bubble.active {
+    opacity: 1;
+    scale: 1;
+}
+
+/* Base Arrow Styles */
+#angel-speech-bubble::after,
+#angel-speech-bubble::before {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+    border: solid transparent;
+}
+
+/* Bottom Arrow (Default) */
+#angel-speech-bubble.arrow-bottom::before {
+    bottom: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 11px 11px 0 11px;
+    border-top-color: rgba(255, 210, 50, 0.7);
+}
+#angel-speech-bubble.arrow-bottom::after {
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 10px 10px 0 10px;
+    border-top-color: rgba(20, 24, 40, 0.95);
+}
+
+/* Top Arrow */
+#angel-speech-bubble.arrow-top::before {
+    top: -11px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 11px 11px 11px;
+    border-bottom-color: rgba(255, 210, 50, 0.7);
+}
+#angel-speech-bubble.arrow-top::after {
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 0 10px 10px 10px;
+    border-bottom-color: rgba(20, 24, 40, 0.95);
+}
+
+/* Left Arrow */
+#angel-speech-bubble.arrow-left::before {
+    left: -11px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 11px 11px 11px 0;
+    border-right-color: rgba(255, 210, 50, 0.7);
+}
+#angel-speech-bubble.arrow-left::after {
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 10px 10px 10px 0;
+    border-right-color: rgba(20, 24, 40, 0.95);
+}
+
+/* Right Arrow */
+#angel-speech-bubble.arrow-right::before {
+    right: -11px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 11px 0 11px 11px;
+    border-left-color: rgba(255, 210, 50, 0.7);
+}
+#angel-speech-bubble.arrow-right::after {
+    right: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 10px 0 10px 10px;
+    border-left-color: rgba(20, 24, 40, 0.95);
+}
+
+.angel-bubble-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(253, 224, 71, 0.3);
+    padding-bottom: 6px;
+}
+
+.angel-bubble-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fde047;
+    text-transform: uppercase;
+    letter-spacing: normal;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.angel-bubble-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 16px;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+}
+
+.angel-bubble-close:hover {
+    color: #fde047;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.angel-bubble-body {
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.45;
+    letter-spacing: normal;
+    word-spacing: normal;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 650px) {
+    #angel-speech-bubble {
+        width: min(240px, calc(100vw - 20px));
+        padding: 10px 12px;
+    }
+    .angel-bubble-body {
+        font-size: 13px;
+    }
+}

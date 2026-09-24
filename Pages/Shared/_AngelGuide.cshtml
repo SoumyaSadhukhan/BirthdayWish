@@ -1,0 +1,38 @@
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Config
+@{
+    var guideEnabled = Config.GetValue<bool>("BirthdayConfig:AngelGuideMessages:Enabled", true);
+    if (!guideEnabled) return;
+}
+
+<!-- 3D Angel Guide Configuration -->
+<script>
+    window.AngelConfig = {
+        enabled: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(guideEnabled)),
+        standingTimeSec: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:StandingTimeSec", 5.0))),
+        flySpeed: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Config.GetValue<double>("BirthdayConfig:AngelGuideMessages:FlySpeed", 3.0))),
+        modelUrl: "/models/angel/angel.glb",
+        initialPosition: { x: 2, y: 1.2, z: 0 },
+        scale: 1.0,
+        mobileScale: 0.75,
+        shadowEnabled: true,
+        dialogueEnabled: true
+    };
+</script>
+
+<!-- 3D Angel Guide Stylesheet -->
+<link rel="stylesheet" href="~/css/angel/angel.css" asp-append-version="true" />
+
+<!-- Three.js & GLTFLoader CDN Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+<!-- 3D Angel Guide System Modules -->
+<script src="~/js/angel/AngelRenderer.js" asp-append-version="true"></script>
+<script src="~/js/angel/AngelAnimator.js" asp-append-version="true"></script>
+<script src="~/js/angel/AngelFlight.js" asp-append-version="true"></script>
+<script src="~/js/angel/AngelTargetManager.js" asp-append-version="true"></script>
+<script src="~/js/angel/AngelDialogue.js" asp-append-version="true"></script>
+<script src="~/js/angel/AngelPageBehavior.js" asp-append-version="true"></script>
+<script src="~/js/angel/AngelInteraction.js" asp-append-version="true"></script>
+<script src="~/js/angel/AngelController.js" asp-append-version="true"></script>
