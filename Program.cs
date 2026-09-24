@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.StaticFiles;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -14,7 +16,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+// Explicitly register MIME types for 3D Models (.glb, .gltf) for Linux / Render hosting
+var contentTypeProvider = new FileExtensionContentTypeProvider();
+contentTypeProvider.Mappings[".glb"] = "model/gltf-binary";
+contentTypeProvider.Mappings[".gltf"] = "model/gltf+json";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = contentTypeProvider
+});
 
 app.UseRouting();
 
