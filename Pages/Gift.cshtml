@@ -196,8 +196,8 @@
         left: 5px;
         width: 136px;
         height: 90px;
-        background-color: #fffdf2;
-        background-image: linear-gradient(120deg, #fffef7 0%, #fef9e7 100%);
+        background-color: #fffdf5;
+        background-image: linear-gradient(135deg, #fffef7 0%, #fef5e7 100%);
         z-index: 2;
         padding: 10px;
         font-family: 'Caveat', cursive, sans-serif;
@@ -206,16 +206,32 @@
         line-height: 1.5;
         color: #111827;
         box-shadow: inset 0 0 10px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.1);
-        border-radius: 4px;
+        border-radius: 6px;
         overflow: hidden;
         word-wrap: break-word;
+        box-sizing: border-box;
+    }
+
+    #letter-paper::-webkit-scrollbar {
+        width: 6px;
+    }
+    #letter-paper::-webkit-scrollbar-track {
+        background: rgba(254, 243, 199, 0.5);
+        border-radius: 4px;
+    }
+    #letter-paper::-webkit-scrollbar-thumb {
+        background: rgba(217, 119, 6, 0.4);
+        border-radius: 4px;
+    }
+    #letter-paper::-webkit-scrollbar-thumb:hover {
+        background: rgba(217, 119, 6, 0.7);
     }
 
     .photo-stack {
         position: relative;
-        width: 240px;
-        height: 280px;
-        filter: drop-shadow(0 0 30px rgba(251, 191, 36, 1));
+        width: 270px;
+        height: 330px;
+        filter: drop-shadow(0 0 30px rgba(251, 191, 36, 0.9));
     }
     
     .photo-card {
@@ -224,21 +240,26 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background-color: white; /* Fully opaque white */
-        padding: 10px 10px 60px 10px; /* Larger Polaroid style */
+        background-color: #ffffff;
+        padding: 12px 12px 64px 12px;
         box-sizing: border-box;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
         transform-origin: center;
+        display: flex;
+        flex-direction: column;
     }
     
     .photo-image {
         width: 100%;
         height: 100%;
-        background-size: cover;
+        background-size: contain;
+        background-repeat: no-repeat;
         background-position: center;
-        background-color: #eee;
+        background-color: #f8fafc;
+        border-radius: 4px;
+        box-shadow: inset 0 0 4px rgba(0,0,0,0.06);
     }
     
     .photo-caption {
@@ -248,9 +269,13 @@
         width: 100%;
         text-align: center;
         font-family: 'Outfit', sans-serif;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         color: #831843;
         font-weight: 600;
+        padding: 0 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .puzzle-board {
@@ -289,11 +314,11 @@
             padding: 2.5rem 1rem !important;
         }
         .photo-stack {
-            width: 220px;
-            height: 270px;
+            width: 230px;
+            height: 290px;
         }
         .photo-caption {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             bottom: 14px;
         }
         .puzzle-board {
@@ -602,41 +627,54 @@
                             tl.to('#envelope-flap', { rotationX: 180, duration: 0.5, ease: 'power2.inOut', zIndex: 1 }, 0);
                             
                             const isMobile = window.innerWidth <= 650;
+                            const params = getLetterResponsiveParams();
                             
-                            // 1. Slide letter straight UP out of the envelope first (keep it narrow so it doesn't clip the sides)
+                            // 1. Slide letter straight UP out of the envelope first
                             tl.to('#letter-paper', {
-                                y: isMobile ? -100 : -120, 
+                                y: isMobile ? -100 : -125, 
                                 duration: 0.4, 
                                 ease: 'power2.out'
                             }, "+=0.1");
                             
                             // 2. Once it's out, pop it in FRONT of the envelope
-                            tl.set('#letter-paper', { zIndex: 10 });
+                            tl.set('#letter-paper', { zIndex: 100 });
                             
                             // 3. Expand and scale the letter to reading size
-                            const targetW = isMobile ? Math.min(window.innerWidth * 0.88, 340) : 500;
-                            const offsetX = - (targetW / 2) + 75; // Center horizontally relative to envelope (150px wide)
-                            
                             tl.to('#letter-paper', {
-                                y: isMobile ? -25 : -45,
-                                x: offsetX, // Center horizontally
-                                scale: 1, 
-                                width: targetW + 'px',
-                                maxWidth: '90vw',
-                                height: 'auto',
-                                maxHeight: '70vh',
-                                overflowY: 'auto',
-                                minHeight: isMobile ? '220px' : '280px',
-                                padding: isMobile ? '20px 18px' : '32px 38px',
-                                fontSize: isMobile ? '1.25rem' : '1.75rem',
-                                fontWeight: '700',
-                                lineHeight: '1.6',
-                                color: '#111827',
-                                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), inset 0 0 20px rgba(253, 245, 224, 0.5)',
-                                borderRadius: '12px',
-                                border: '1px solid #e5e7eb',
                                 duration: 0.6, 
-                                ease: 'power2.out'
+                                ease: 'power2.out',
+                                onStart: function() {
+                                    const letterEl = document.getElementById('letter-paper');
+                                    // Apply sizing to measure true rendered height
+                                    const preParams = getLetterResponsiveParams();
+                                    gsap.set(letterEl, {
+                                        width: preParams.targetW + 'px',
+                                        maxWidth: '92vw',
+                                        height: 'auto',
+                                        maxHeight: preParams.maxH,
+                                        overflowY: 'auto',
+                                        minHeight: isMobile ? '180px' : '240px',
+                                        padding: preParams.pad,
+                                        fontSize: preParams.fontSz,
+                                        fontWeight: '600',
+                                        lineHeight: '1.6',
+                                        zIndex: 10005
+                                    });
+                                    
+                                    // Compute exact viewport-centered translation coordinates
+                                    const finalParams = getLetterResponsiveParams();
+                                    gsap.to(letterEl, {
+                                        x: finalParams.offsetX,
+                                        y: finalParams.translateY,
+                                        scale: 1,
+                                        color: '#111827',
+                                        boxShadow: '0 25px 60px rgba(0,0,0,0.5), inset 0 0 20px rgba(253, 245, 224, 0.6), 0 0 35px rgba(251, 191, 36, 0.4)',
+                                        borderRadius: '12px',
+                                        border: '1px solid #fcd34d',
+                                        duration: 0.6,
+                                        ease: 'power2.out'
+                                    });
+                                }
                             });
 
                             if (window.angelController) {
@@ -806,9 +844,99 @@
             }
         }
 
+        function getLetterResponsiveParams() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const isMobile = w <= 650;
+            const isSmallPhone = w <= 400;
+            
+            let targetW;
+            if (isSmallPhone) {
+                targetW = Math.min(w * 0.92, 330);
+            } else if (isMobile) {
+                targetW = Math.min(w * 0.9, 380);
+            } else {
+                targetW = Math.min(w * 0.82, 510);
+            }
+            
+            let fontSz;
+            if (isSmallPhone) {
+                fontSz = '1.02rem';
+            } else if (isMobile) {
+                fontSz = '1.12rem';
+            } else if (h < 750) {
+                fontSz = '1.2rem';
+            } else {
+                fontSz = '1.35rem';
+            }
+
+            let pad;
+            if (isSmallPhone) {
+                pad = '14px 12px';
+            } else if (isMobile) {
+                pad = '18px 15px';
+            } else {
+                pad = '22px 26px';
+            }
+
+            let maxHNum = Math.min(h * 0.54, isMobile ? 330 : 410);
+            let maxH = maxHNum + 'px';
+
+            const envWrapper = document.querySelector('.envelope-wrapper');
+            const letterPaper = document.getElementById('letter-paper');
+            
+            let offsetX = 70 - (targetW / 2);
+            let translateY = 60;
+
+            if (envWrapper && letterPaper) {
+                const envRect = envWrapper.getBoundingClientRect();
+                const screenCenterX = w / 2;
+                // Position significantly lower on screen (64% for desktop, 65% for mobile)
+                const screenCenterY = isMobile ? h * 0.65 : h * 0.64;
+                
+                const renderedH = letterPaper.offsetHeight > 100 ? letterPaper.offsetHeight : maxHNum * 0.85;
+                const effectiveH = Math.min(renderedH, maxHNum);
+                
+                const desiredLeft = screenCenterX - (targetW / 2);
+                const desiredTop = screenCenterY - (effectiveH / 2);
+                
+                const paperInitialLeft = envRect.left + 5;
+                const paperInitialTop = envRect.top + 5;
+                
+                offsetX = desiredLeft - paperInitialLeft;
+                translateY = desiredTop - paperInitialTop;
+            }
+
+            return { targetW, offsetX, fontSz, pad, translateY, maxH };
+        }
+
+        window.addEventListener('resize', () => {
+            if (letterOpened && currentItem === 4) {
+                const params = getLetterResponsiveParams();
+                gsap.to('#letter-paper', {
+                    x: params.offsetX,
+                    y: params.translateY,
+                    width: params.targetW + 'px',
+                    padding: params.pad,
+                    fontSize: params.fontSz,
+                    maxHeight: params.maxH,
+                    duration: 0.25,
+                    ease: 'power1.out'
+                });
+            }
+        });
+
         function flyAwayItem(index, tl) {
             const item = document.getElementById(`loot-${index}`);
             gsap.killTweensOf(item); // Stop the hovering
+            if (index === 4) {
+                gsap.to('#letter-paper', {
+                    opacity: 0,
+                    scale: 0.4,
+                    duration: 0.4,
+                    ease: 'power2.in'
+                });
+            }
             tl.to(item, {
                 scale: 0,
                 opacity: 0,
