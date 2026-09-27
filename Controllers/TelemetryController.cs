@@ -17,31 +17,51 @@ public class TelemetryController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>
-    /// Individual event logging endpoint. Per user preference, individual event emails are DISABLED.
-    /// Only one full summary email is dispatched when visitor leaves the website via /track-session.
-    /// </summary>
     [HttpPost("track")]
-    public IActionResult Track([FromBody] TelemetryData data)
+    public IActionResult Track()
     {
-        // Single event email intentionally disabled - summary email is sent on site exit
         return Ok(new { success = true, note = "Individual event email suppressed. Session summary email will fire on exit." });
     }
 
     /// <summary>
-    /// Dispatches EXACTLY ONE email per visitor session containing all pages visited, actions, duration, and device details when user exits.
+    /// Receives full session telemetry payload on site exit / completion and sends ONE summary email.
+    /// Manually parses Request.Body to handle text/plain or application/json from sendBeacon and fetch keepalive.
     /// </summary>
     [HttpPost("track-session")]
-    public IActionResult TrackSession([FromBody] SessionSummaryData data)
+    public async Task<IActionResult> TrackSession()
     {
         try
         {
+            SessionSummaryData? data = null;
+
+            using (var reader = new StreamReader(Request.Body))
+            {
+                string bodyText = await reader.ReadToEndAsync();
+                if (!string.IsNullOrWhiteSpace(bodyText))
+                {
+                    var options = new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    };
+                    data = System.Text.Json.JsonSerializer.Deserialize<SessionSummaryData>(bodyText, options);
+                }
+            }
+
+            if (data == null || string.IsNullOrWhiteSpace(data.SessionId))
+            {
+                _logger.LogWarning("[Telemetry] TrackSession received null or empty payload.");
+                return Ok(new { success = false, message = "Empty payload received" });
+            }
+
             data.ClientIp = GetClientIp(HttpContext);
             if (string.IsNullOrWhiteSpace(data.UserAgent))
             {
                 data.UserAgent = Request.Headers.UserAgent.ToString();
             }
             data.ServerTimestampUtc = DateTime.UtcNow;
+
+            _logger.LogInformation("[Telemetry] Received session summary for SessionId={SessionId}, Pages={PagesCount}, Events={EventsCount}",
+                data.SessionId, data.PagesVisited?.Count ?? 0, data.TimelineEvents?.Count ?? 0);
 
             _ = Task.Run(async () =>
             {

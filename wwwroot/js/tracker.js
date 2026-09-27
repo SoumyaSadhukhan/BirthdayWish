@@ -1,30 +1,24 @@
 /**
  * Piu Birthday App - Visitor Activity Tracker
  * SILENTLY records all page views, button clicks, and activities during visitor session.
- * Dispatches EXACTLY ONE email when the visitor leaves/exits the website or closes the tab.
+ * Dispatches EXACTLY ONE summary email to sadhukhansoumya7319@gmail.com when visitor exits/leaves website or closes browser.
  */
 (function () {
-    let isInternalNavigation = false;
+    let isInternalClicking = false;
 
-    // Detect internal link clicks so internal page switches do NOT trigger an exit email
+    // Transient in-memory flag for internal link clicks (clears automatically after 1.5s)
     document.addEventListener('click', function (e) {
         const link = e.target.closest('a');
         if (link && link.href) {
             try {
                 const targetUrl = new URL(link.href, window.location.origin);
                 if (targetUrl.origin === window.location.origin) {
-                    isInternalNavigation = true;
-                    sessionStorage.setItem('piu_internal_nav', 'true');
+                    isInternalClicking = true;
+                    setTimeout(() => { isInternalClicking = false; }, 1500);
                 }
             } catch (err) {}
         }
     }, true);
-
-    // Clear internal nav flag when new page loads
-    window.addEventListener('pageshow', () => {
-        isInternalNavigation = false;
-        sessionStorage.removeItem('piu_internal_nav');
-    });
 
     // 1. Session & Timing Management
     function getSessionId() {
@@ -122,25 +116,23 @@
         };
     }
 
-    // 3. Dispatch EXACTLY ONE Session Summary Email when visitor leaves the website
-    let exitMailSent = false;
+    // 3. Dispatch Session Summary Email on Exit / Completion
     function sendSessionSummaryOnExit(reason) {
-        if (exitMailSent) return;
+        // Skip if currently transitioning between internal links via click
+        if (isInternalClicking) return;
 
-        // If user is navigating internally inside the website, DO NOT send exit email
-        if (isInternalNavigation || sessionStorage.getItem('piu_internal_nav') === 'true') {
-            return;
-        }
+        const events = getTimelineEvents();
+        const lastSentCount = parseInt(sessionStorage.getItem('piu_last_sent_count') || '-1', 10);
+
+        // Prevent duplicate emails if no new actions happened since last dispatch
+        if (events.length > 0 && events.length === lastSentCount) return;
 
         const payload = buildSessionPayload(reason);
         const jsonPayload = JSON.stringify(payload);
         const endpoint = '/api/telemetry/track-session';
 
         try {
-            if (navigator.sendBeacon) {
-                const blob = new Blob([jsonPayload], { type: 'application/json' });
-                navigator.sendBeacon(endpoint, blob);
-            } else {
+            if (window.fetch) {
                 fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -148,9 +140,16 @@
                     keepalive: true
                 }).catch(() => {});
             }
-            exitMailSent = true;
+
+            if (navigator.sendBeacon) {
+                const blob = new Blob([jsonPayload], { type: 'application/json' });
+                navigator.sendBeacon(endpoint, blob);
+            }
+
+            sessionStorage.setItem('piu_last_sent_count', events.length.toString());
+            console.log('[Tracker] Dispatched session exit telemetry report:', reason);
         } catch (e) {
-            console.warn('[Tracker] Error sending exit telemetry:', e);
+            console.warn('[Tracker] Error dispatching session exit telemetry:', e);
         }
     }
 
@@ -164,10 +163,10 @@
     recordPageVisited(currentPath);
     recordTimelineEvent(`Visited page: ${currentPath}`);
 
-    // 6. Send ONE Email when user switches tab, closes browser/tab, or exits website
+    // 6. Listen for Visitor Exit / Window Close / Tab Close / App Switch / Back Button
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
-            sendSessionSummaryOnExit('User switched tab or left website');
+            sendSessionSummaryOnExit('User switched tab or minimized browser');
         }
     });
 
@@ -176,6 +175,6 @@
     });
 
     window.addEventListener('beforeunload', () => {
-        sendSessionSummaryOnExit('User navigated away or closed browser');
+        sendSessionSummaryOnExit('User closed browser or navigated away');
     });
 })();
