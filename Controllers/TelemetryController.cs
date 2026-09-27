@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Piu.Models;
 using Piu.Services;
 
@@ -10,13 +11,62 @@ namespace Piu.Controllers;
 public class TelemetryController : ControllerBase
 {
     private readonly IEmailService _emailService;
+    private readonly EmailOptions _options;
     private readonly ILogger<TelemetryController> _logger;
     private static readonly ConcurrentDictionary<string, DateTime> _sentSessions = new();
 
-    public TelemetryController(IEmailService emailService, ILogger<TelemetryController> logger)
+    public TelemetryController(IEmailService emailService, IOptions<EmailOptions> options, ILogger<TelemetryController> logger)
     {
         _emailService = emailService;
+        _options = options.Value;
         _logger = logger;
+    }
+
+    [HttpGet("test-email")]
+    public async Task<IActionResult> TestEmail()
+    {
+        var configSummary = new
+        {
+            Provider = _options.Provider,
+            HasApiKey = !string.IsNullOrWhiteSpace(_options.ApiKey),
+            ApiKeyPrefix = !string.IsNullOrWhiteSpace(_options.ApiKey) ? (_options.ApiKey.Length > 8 ? _options.ApiKey.Substring(0, 8) + "..." : "short") : "none",
+            SenderEmail = _options.SenderEmail,
+            SenderPasswordConfigured = !string.IsNullOrWhiteSpace(_options.SenderPassword),
+            ToEmail = _options.ToEmail,
+            SmtpHost = _options.SmtpHost,
+            SmtpPort = _options.SmtpPort
+        };
+
+        try
+        {
+            string subject = "🧪 Diagnostic Test Email - Piu App";
+            string body = $@"
+                <div style='font-family:sans-serif; padding:20px; background:#0f172a; color:#fff; border-radius:10px;'>
+                    <h2 style='color:#38bdf8;'>🎉 Live Render Email Test Successful!</h2>
+                    <p>Your web application live email delivery system is working 100% on Render.</p>
+                    <p><strong>Recipient:</strong> {_options.ToEmail}</p>
+                    <p><strong>Provider:</strong> {_options.Provider}</p>
+                </div>";
+
+            await _emailService.SendEmailAsync(subject, body);
+
+            return Ok(new
+            {
+                success = true,
+                message = $"Test email sent successfully to {_options.ToEmail}",
+                config = configSummary
+            });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new
+            {
+                success = false,
+                error = ex.Message,
+                innerError = ex.InnerException?.Message,
+                config = configSummary
+            });
+        }
     }
 
     [HttpPost("track")]
@@ -74,7 +124,7 @@ public class TelemetryController : ControllerBase
             }
             _sentSessions[sessionKey] = DateTime.UtcNow;
 
-            _logger.LogInformation("[Telemetry] Received session summary for SessionId={SessionId}, Pages={PagesCount}, Events={EventsCount}",
+            _logger.LogInformation("[Telemetry] Processing session summary email for SessionId={SessionId}, Pages={PagesCount}, Events={EventsCount}",
                 data.SessionId, data.PagesVisited?.Count ?? 0, data.TimelineEvents?.Count ?? 0);
 
             _ = Task.Run(async () =>
