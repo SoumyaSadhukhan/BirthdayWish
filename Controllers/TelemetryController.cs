@@ -43,7 +43,7 @@ public class TelemetryController : ControllerBase
             string body = $@"
                 <div style='font-family:sans-serif; padding:20px; background:#0f172a; color:#fff; border-radius:10px;'>
                     <h2 style='color:#38bdf8;'>🎉 Live Render Email Test Successful!</h2>
-                    <p>Your web application live email delivery system is working 100% on Render.</p>
+                    <p>Your web application live email delivery system is working 100% on Render via {_options.Provider}.</p>
                     <p><strong>Recipient:</strong> {_options.ToEmail}</p>
                     <p><strong>Provider:</strong> {_options.Provider}</p>
                 </div>";
@@ -77,7 +77,7 @@ public class TelemetryController : ControllerBase
 
     /// <summary>
     /// Receives full session telemetry payload on site exit / completion and sends ONE summary email.
-    /// Manually parses Request.Body to handle text/plain or application/json from sendBeacon and fetch keepalive.
+    /// Awaits SendSessionSummaryEmailAsync directly so Render container execution never truncates the task.
     /// </summary>
     [HttpPost("track-session")]
     public async Task<IActionResult> TrackSession()
@@ -112,11 +112,11 @@ public class TelemetryController : ControllerBase
             }
             data.ServerTimestampUtc = DateTime.UtcNow;
 
-            // Server-side session deduplication (prevent rapid duplicate sends within 45s unless final drone show completed)
+            // Server-side session deduplication (prevent rapid duplicate sends within 30s)
             string sessionKey = data.SessionId;
             if (_sentSessions.TryGetValue(sessionKey, out DateTime lastSent))
             {
-                if ((DateTime.UtcNow - lastSent).TotalSeconds < 45 && !data.FinalStatus.Contains("Drone"))
+                if ((DateTime.UtcNow - lastSent).TotalSeconds < 30 && !data.FinalStatus.Contains("Drone"))
                 {
                     _logger.LogInformation("[Telemetry] Suppressing rapid duplicate exit email for SessionId={SessionId} (Sent {Secs}s ago)", data.SessionId, (int)(DateTime.UtcNow - lastSent).TotalSeconds);
                     return Ok(new { success = true, note = "Deduplicated on server" });
@@ -124,20 +124,11 @@ public class TelemetryController : ControllerBase
             }
             _sentSessions[sessionKey] = DateTime.UtcNow;
 
-            _logger.LogInformation("[Telemetry] Processing session summary email for SessionId={SessionId}, Pages={PagesCount}, Events={EventsCount}",
+            _logger.LogInformation("[Telemetry] Sending live session summary email for SessionId={SessionId}, Pages={PagesCount}, Events={EventsCount}",
                 data.SessionId, data.PagesVisited?.Count ?? 0, data.TimelineEvents?.Count ?? 0);
 
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await _emailService.SendSessionSummaryEmailAsync(data);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Background error sending session summary email.");
-                }
-            });
+            // Await email dispatch directly so Render container execution never truncates the HTTP request
+            await _emailService.SendSessionSummaryEmailAsync(data);
 
             return Ok(new { success = true });
         }
