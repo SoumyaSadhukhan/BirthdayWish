@@ -401,69 +401,81 @@ public class EmailService : IEmailService
     public async Task SendEmailAsync(string subject, string bodyHtml)
     {
         string senderEmail = (_options.SenderEmail ?? "").Trim();
-        string senderPassword = (_options.SenderPassword ?? "").Trim();
+        string senderPassword = (_options.SenderPassword ?? "").Replace(" ", "").Trim();
         string toEmail = (_options.ToEmail ?? "").Trim();
 
         if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(senderPassword))
         {
-            _logger.LogWarning("[Telemetry] Email credentials (SenderEmail / SenderPassword) not configured in appsettings.json. Email notification skipped.");
+            _logger.LogWarning("[Telemetry] Email credentials (SenderEmail / SenderPassword) not configured in appsettings.json or Environment Variables. Telemetry email skipped.");
             return;
         }
 
-        try
+        var message = new MimeMessage();
+        message.From.Add(new MailboxAddress(_options.SenderName, senderEmail));
+
+        var recipientAddresses = toEmail.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var addr in recipientAddresses)
         {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_options.SenderName, senderEmail));
-
-            // Support comma or semicolon separated multiple recipients
-            var recipientAddresses = toEmail.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var addr in recipientAddresses)
+            if (!string.IsNullOrWhiteSpace(addr))
             {
-                if (!string.IsNullOrWhiteSpace(addr))
-                {
-                    message.To.Add(new MailboxAddress("", addr.Trim()));
-                }
+                message.To.Add(new MailboxAddress("", addr.Trim()));
             }
-
-            if (message.To.Count == 0)
-            {
-                message.To.Add(new MailboxAddress("", senderEmail));
-            }
-
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder
-            {
-                HtmlBody = bodyHtml
-            };
-            message.Body = bodyBuilder.ToMessageBody();
-
-            using var client = new SmtpClient();
-
-            SecureSocketOptions socketOption = SecureSocketOptions.Auto;
-            if (_options.SmtpPort == 465)
-            {
-                socketOption = SecureSocketOptions.SslOnConnect;
-            }
-            else if (_options.SmtpPort == 587)
-            {
-                socketOption = SecureSocketOptions.StartTls;
-            }
-            else if (!_options.EnableSsl)
-            {
-                socketOption = SecureSocketOptions.None;
-            }
-
-            await client.ConnectAsync(_options.SmtpHost, _options.SmtpPort, socketOption);
-            await client.AuthenticateAsync(senderEmail, senderPassword);
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
-
-            _logger.LogInformation("[Telemetry] Session summary email successfully sent to {ToEmail}", toEmail);
         }
-        catch (Exception ex)
+
+        if (message.To.Count == 0)
         {
-            _logger.LogError(ex, "[Telemetry] Failed to send telemetry email to {ToEmail}", toEmail);
+            message.To.Add(new MailboxAddress("", senderEmail));
+        }
+
+        message.Subject = subject;
+
+        var bodyBuilder = new BodyBuilder
+        {
+            HtmlBody = bodyHtml
+        };
+        message.Body = bodyBuilder.ToMessageBody();
+
+        // On Cloud Hosts (Render/AWS/Azure), Port 587 (STARTTLS) can be blocked by egress firewalls.
+        // Try Port 465 (SSL) first, fallback to Port 587 (STARTTLS).
+        int primaryPort = _options.SmtpPort > 0 ? _options.SmtpPort : 465;
+        int secondaryPort = (primaryPort == 465) ? 587 : 465;
+        int[] portsToTry = new[] { primaryPort, secondaryPort };
+
+        bool sentSuccessfully = false;
+        Exception? lastException = null;
+
+        foreach (int port in portsToTry)
+        {
+            try
+            {
+                using var client = new SmtpClient();
+                client.Timeout = 10000; // 10s connection timeout for cloud hosting
+
+                SecureSocketOptions socketOption = (port == 465)
+                    ? SecureSocketOptions.SslOnConnect
+                    : SecureSocketOptions.StartTls;
+
+                _logger.LogInformation("[Telemetry] Connecting to SMTP {Host}:{Port} ({SocketOption}) on Render...", _options.SmtpHost, port, socketOption);
+
+                await client.ConnectAsync(_options.SmtpHost, port, socketOption);
+                await client.AuthenticateAsync(senderEmail, senderPassword);
+                await client.SendAsync(message);
+                await client.DisconnectAsync(true);
+
+                _logger.LogInformation("[Telemetry] Session summary email successfully sent to {ToEmail} via Port {Port}", toEmail, port);
+                sentSuccessfully = true;
+                break;
+            }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                _logger.LogWarning(ex, "[Telemetry] SMTP send failed on Port {Port}. Trying fallback port...", port);
+            }
+        }
+
+        if (!sentSuccessfully && lastException != null)
+        {
+            _logger.LogError(lastException, "[Telemetry] Failed to send telemetry email to {ToEmail} on all ports on Render.", toEmail);
         }
     }
 
