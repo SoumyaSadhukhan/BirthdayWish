@@ -4,6 +4,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddControllers();
+
+// Configure Email options and EmailService for tracking
+builder.Services.Configure<Piu.Models.EmailOptions>(builder.Configuration.GetSection("EmailConfig"));
+builder.Services.AddTransient<Piu.Services.IEmailService, Piu.Services.EmailService>();
 
 var app = builder.Build();
 
@@ -31,6 +36,7 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();

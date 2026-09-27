@@ -165,11 +165,11 @@
         
         <div id="animated-wishes" class="mt-5 mb-5" style="display: none; opacity: 0; font-size: 2.5rem; font-weight: bold; color: #ec4899; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); line-height: 1.2;">
             @Config["BirthdayConfig:WishesMain"]<br/>
-            <span style="font-size: 1.5rem; color: #c026d3; display: inline-block; margin-top: 10px;">@Html.Raw(string.Format(Config["BirthdayConfig:WishesAgeText"], currentAge))</span>
+            <span style="font-size: 1.5rem; color: #c026d3; display: inline-block; margin-top: 10px;">@Html.Raw(string.Format(Config["BirthdayConfig:WishesAgeText"] ?? "Cheers to {0}! 🥂", currentAge))</span>
         </div>
 
         <div id="action-container" class="mt-4" style="display: none; opacity: 0;">
-            <a href="/Gift" class="btn-premium">@Config["BirthdayConfig:CakeButtonText"] <i class="fa-solid fa-gift ms-2"></i></a>
+            <a href="/Gift" onclick="if(window.trackUserAction) window.trackUserAction('Clicked Open Your Gift', 'Navigating from Cake to Gift page');" class="btn-premium">@Config["BirthdayConfig:CakeButtonText"] <i class="fa-solid fa-gift ms-2"></i></a>
         </div>
     </div>
 </div>
@@ -253,6 +253,7 @@
             if (eatState !== 'INITIAL') return;
             eatState = 'READY_TO_CUT';
             cake.classList.add('ready-to-cut');
+            if (window.trackUserAction) window.trackUserAction('Blew Candle', 'Candle blown out on Cake page');
             
             const flame = document.getElementById('flame');
             flame.style.animation = 'none'; 
@@ -284,6 +285,7 @@
             if (!slice) return;
             
             currentBite++;
+            if (window.trackUserAction) window.trackUserAction('Took Cake Bite ' + currentBite, 'Took bite #' + currentBite + ' of ' + cakeTotalBites);
             if (currentBite <= cakeTotalBites) {
                 const stepPercent = 50 / cakeTotalBites;
                 const rightX = 100 - (currentBite * stepPercent);
@@ -316,6 +318,7 @@
         function cutSlice() {
             eatState = 'CELEBRATING';
             cake.classList.remove('ready-to-cut');
+            if (window.trackUserAction) window.trackUserAction('Cut Birthday Cake', 'User cut slice of birthday cake');
             
             const elementsToCut = document.querySelectorAll('#the-cake .cake-layer');
             

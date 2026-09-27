@@ -34,7 +34,7 @@
         </div>
 
         <div id="action-container" class="mt-5" style="display: none; opacity: 0;">
-            <a href="/Wish" class="btn-premium">@Config["BirthdayConfig:IndexButtonText"] <i class="fa-solid fa-arrow-right ms-2"></i></a>
+            <a href="/Wish" onclick="if(window.trackUserAction) window.trackUserAction('Clicked Begin Journey', 'Navigating from Index to Wish page');" class="btn-premium">@Config["BirthdayConfig:IndexButtonText"] <i class="fa-solid fa-arrow-right ms-2"></i></a>
         </div>
     </div>
 </div>

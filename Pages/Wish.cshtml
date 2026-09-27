@@ -19,7 +19,7 @@
             @Html.Raw(Config["BirthdayConfig:WishMessage"])
         </p>
         
-        <a href="/Cake" class="btn-premium">@Config["BirthdayConfig:WishButtonText"] <i class="fa-solid fa-cake-candles ms-2"></i></a>
+        <a href="/Cake" onclick="if(window.trackUserAction) window.trackUserAction('Clicked Let\'s Kill the Cake', 'Navigating from Wish to Cake page');" class="btn-premium">@Config["BirthdayConfig:WishButtonText"] <i class="fa-solid fa-cake-candles ms-2"></i></a>
     </div>
 </div>
 

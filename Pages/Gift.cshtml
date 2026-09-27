@@ -577,6 +577,7 @@
                 
                 isOpened = true;
                 isAnimating = true;
+                if (window.trackUserAction) window.trackUserAction('Opened Gift Box', 'Tapped and opened gift box');
                 
                 instruction.style.display = 'none';
                 heading.innerText = "Surprise!";
@@ -750,6 +751,7 @@
 
         function showItem(index, tl, position = "+=0") {
             const item = document.getElementById(`loot-${index}`);
+            if (window.trackUserAction) window.trackUserAction('Viewed Gift Item #' + index, 'Gift loot item ' + index + ' displayed');
             tl.fromTo(item, 
                 { opacity: 0, y: 0, scale: 0, xPercent: -50, yPercent: -50 },
                 {
@@ -983,6 +985,7 @@
         function triggerDroneShow() {
             instruction.style.display = 'none';
             isDroneShowActive = true;
+            if (window.trackUserAction) window.trackUserAction('Triggered Drone Show', 'Reached final surprise drone show');
 
             if (window.angelController) {
                 window.angelController.say(msgGiftDone, { duration: droneFlutterDurationSec * 1000 });
