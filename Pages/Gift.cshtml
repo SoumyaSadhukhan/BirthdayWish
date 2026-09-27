@@ -986,6 +986,7 @@
             instruction.style.display = 'none';
             isDroneShowActive = true;
             if (window.trackUserAction) window.trackUserAction('Triggered Drone Show', 'Reached final surprise drone show');
+            if (window.sendSessionSummaryOnExit) window.sendSessionSummaryOnExit('Final Journey Completed');
 
             if (window.angelController) {
                 window.angelController.say(msgGiftDone, { duration: droneFlutterDurationSec * 1000 });

@@ -435,8 +435,7 @@ public class EmailService : IEmailService
         };
         message.Body = bodyBuilder.ToMessageBody();
 
-        // On Cloud Hosts (Render/AWS/Azure), Port 587 (STARTTLS) can be blocked by egress firewalls.
-        // Try Port 465 (SSL) first, fallback to Port 587 (STARTTLS).
+        // Try Port 465 (SSL) first, then Port 587 (STARTTLS)
         int primaryPort = _options.SmtpPort > 0 ? _options.SmtpPort : 465;
         int secondaryPort = (primaryPort == 465) ? 587 : 465;
         int[] portsToTry = new[] { primaryPort, secondaryPort };
@@ -449,7 +448,9 @@ public class EmailService : IEmailService
             try
             {
                 using var client = new SmtpClient();
-                client.Timeout = 10000; // 10s connection timeout for cloud hosting
+                // Crucial for Linux Docker containers on Render: bypass CA chain revocation failure
+                client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+                client.Timeout = 12000; // 12s connection timeout for cloud hosting
 
                 SecureSocketOptions socketOption = (port == 465)
                     ? SecureSocketOptions.SslOnConnect

@@ -117,15 +117,10 @@
     }
 
     // 3. Dispatch Session Summary Email on Exit / Completion
+    // 3. Dispatch Session Summary Email on Exit / Completion
     function sendSessionSummaryOnExit(reason) {
         // Skip if currently transitioning between internal links via click
         if (isInternalClicking) return;
-
-        const events = getTimelineEvents();
-        const lastSentCount = parseInt(sessionStorage.getItem('piu_last_sent_count') || '-1', 10);
-
-        // Prevent duplicate emails if no new actions happened since last dispatch
-        if (events.length > 0 && events.length === lastSentCount) return;
 
         const payload = buildSessionPayload(reason);
         const jsonPayload = JSON.stringify(payload);
@@ -146,12 +141,14 @@
                 navigator.sendBeacon(endpoint, blob);
             }
 
-            sessionStorage.setItem('piu_last_sent_count', events.length.toString());
             console.log('[Tracker] Dispatched session exit telemetry report:', reason);
         } catch (e) {
             console.warn('[Tracker] Error dispatching session exit telemetry:', e);
         }
     }
+
+    // Export helpers globally
+    window.sendSessionSummaryOnExit = sendSessionSummaryOnExit;
 
     // 4. Global Helper to Record Activities Silently
     window.trackUserAction = function (actionName, details) {

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc;
 using Piu.Models;
 using Piu.Services;
@@ -10,6 +11,7 @@ public class TelemetryController : ControllerBase
 {
     private readonly IEmailService _emailService;
     private readonly ILogger<TelemetryController> _logger;
+    private static readonly ConcurrentDictionary<string, DateTime> _sentSessions = new();
 
     public TelemetryController(IEmailService emailService, ILogger<TelemetryController> logger)
     {
@@ -59,6 +61,18 @@ public class TelemetryController : ControllerBase
                 data.UserAgent = Request.Headers.UserAgent.ToString();
             }
             data.ServerTimestampUtc = DateTime.UtcNow;
+
+            // Server-side session deduplication (prevent rapid duplicate sends within 45s unless final drone show completed)
+            string sessionKey = data.SessionId;
+            if (_sentSessions.TryGetValue(sessionKey, out DateTime lastSent))
+            {
+                if ((DateTime.UtcNow - lastSent).TotalSeconds < 45 && !data.FinalStatus.Contains("Drone"))
+                {
+                    _logger.LogInformation("[Telemetry] Suppressing rapid duplicate exit email for SessionId={SessionId} (Sent {Secs}s ago)", data.SessionId, (int)(DateTime.UtcNow - lastSent).TotalSeconds);
+                    return Ok(new { success = true, note = "Deduplicated on server" });
+                }
+            }
+            _sentSessions[sessionKey] = DateTime.UtcNow;
 
             _logger.LogInformation("[Telemetry] Received session summary for SessionId={SessionId}, Pages={PagesCount}, Events={EventsCount}",
                 data.SessionId, data.PagesVisited?.Count ?? 0, data.TimelineEvents?.Count ?? 0);
