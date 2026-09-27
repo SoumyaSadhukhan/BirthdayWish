@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text;
+using System.Text.Json;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -11,11 +13,13 @@ public class EmailService : IEmailService
 {
     private readonly EmailOptions _options;
     private readonly ILogger<EmailService> _logger;
+    private readonly HttpClient _httpClient;
 
     public EmailService(IOptions<EmailOptions> options, ILogger<EmailService> logger)
     {
         _options = options.Value;
         _logger = logger;
+        _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
     }
 
     public async Task SendSessionSummaryEmailAsync(SessionSummaryData data)
@@ -24,7 +28,6 @@ public class EmailService : IEmailService
 
         string subject = $"📊 [Visitor Summary] {device.DeviceType} - Spent {FormatDuration(data.TotalDurationSeconds)}";
 
-        // Convert Server Time to IST (UTC+5:30) for display
         TimeZoneInfo istZone = TimeZoneInfo.CreateCustomTimeZone("IST", TimeSpan.FromHours(5.5), "India Standard Time", "India Standard Time");
         DateTime istTime = TimeZoneInfo.ConvertTimeFromUtc(data.ServerTimestampUtc, istZone);
         string formattedTimeIst = istTime.ToString("dd MMM yyyy, hh:mm:ss tt");
@@ -251,151 +254,8 @@ public class EmailService : IEmailService
     public async Task SendTelemetryEmailAsync(TelemetryData data)
     {
         var device = DeviceDetector.ParseUserAgent(data.UserAgent, data.ScreenResolution);
-
         string subject = $"🔔 [Piu App Alert] {data.Action} - {device.DeviceType}";
-
-        TimeZoneInfo istZone = TimeZoneInfo.CreateCustomTimeZone("IST", TimeSpan.FromHours(5.5), "India Standard Time", "India Standard Time");
-        DateTime istTime = TimeZoneInfo.ConvertTimeFromUtc(data.ServerTimestampUtc, istZone);
-        string formattedTimeIst = istTime.ToString("dd MMM yyyy, hh:mm:ss tt");
-
-        string htmlBody = $@"
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset=""utf-8"">
-    <style>
-        body {{
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f172a;
-            color: #e2e8f0;
-            margin: 0;
-            padding: 20px;
-        }}
-        .container {{
-            max-width: 650px;
-            margin: 0 auto;
-            background: #1e293b;
-            border-radius: 16px;
-            padding: 30px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-            border: 1px solid #334155;
-        }}
-        .header {{
-            background: linear-gradient(135deg, #ec4899, #8b5cf6);
-            color: white;
-            padding: 20px 25px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            text-align: center;
-        }}
-        .header h2 {{
-            margin: 0;
-            font-size: 22px;
-            letter-spacing: 0.5px;
-        }}
-        .action-badge {{
-            display: inline-block;
-            background: #f43f5e;
-            color: white;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            margin-bottom: 20px;
-        }}
-        .table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }}
-        .table tr {{
-            border-bottom: 1px solid #334155;
-        }}
-        .table td {{
-            padding: 12px 10px;
-            font-size: 14px;
-            vertical-align: top;
-        }}
-        .table td.label {{
-            font-weight: 600;
-            color: #94a3b8;
-            width: 32%;
-        }}
-        .table td.val {{
-            color: #f8fafc;
-            word-break: break-all;
-        }}
-        .highlight {{
-            color: #38bdf8;
-            font-weight: bold;
-        }}
-        .footer {{
-            margin-top: 25px;
-            padding-top: 15px;
-            border-top: 1px dashed #475569;
-            text-align: center;
-            font-size: 12px;
-            color: #64748b;
-        }}
-    </style>
-</head>
-<body>
-    <div class=""container"">
-        <div class=""header"">
-            <h2>🎉 Single Event Alert 🎉</h2>
-            <p>Piu Birthday Wish Web Application Telemetry</p>
-        </div>
-
-        <div style=""text-align: center;"">
-            <span class=""action-badge"">⚡ {WebUtility.HtmlEncode(data.Action)}</span>
-        </div>
-
-        <table class=""table"">
-            <tr>
-                <td class=""label"">💻 Device Type</td>
-                <td class=""val highlight"">{WebUtility.HtmlEncode(device.DeviceType)} ({WebUtility.HtmlEncode(device.DeviceName)})</td>
-            </tr>
-            <tr>
-                <td class=""label"">📄 Page Visited</td>
-                <td class=""val highlight"">{WebUtility.HtmlEncode(data.PageUrl)} {(string.IsNullOrEmpty(data.PageTitle) ? "" : $"({WebUtility.HtmlEncode(data.PageTitle)})")}</td>
-            </tr>
-            <tr>
-                <td class=""label"">🌐 Visitor IP Address</td>
-                <td class=""val highlight"">{WebUtility.HtmlEncode(data.ClientIp)}</td>
-            </tr>
-            <tr>
-                <td class=""label"">🕒 Time (IST)</td>
-                <td class=""val"">{formattedTimeIst} IST</td>
-            </tr>
-            <tr>
-                <td class=""label"">📱 Device & OS</td>
-                <td class=""val"">{WebUtility.HtmlEncode(device.OperatingSystem)} | {WebUtility.HtmlEncode(device.Browser)}</td>
-            </tr>
-            <tr>
-                <td class=""label"">🖥️ Screen Resolution</td>
-                <td class=""val"">{WebUtility.HtmlEncode(data.ScreenResolution)} (Viewport: {WebUtility.HtmlEncode(data.ViewportSize)})</td>
-            </tr>
-            <tr>
-                <td class=""label"">🔑 Session ID</td>
-                <td class=""val""><code>{WebUtility.HtmlEncode(data.SessionId)}</code></td>
-            </tr>
-            {(string.IsNullOrEmpty(data.Details) ? "" : $@"
-            <tr>
-                <td class=""label"">💡 Extra Details</td>
-                <td class=""val"" style=""color:#fde047;"">{WebUtility.HtmlEncode(data.Details)}</td>
-            </tr>
-            ")}
-        </table>
-
-        <div class=""footer"">
-            Sent automatically by <strong>Piu Birthday Wish Application</strong> Telemetry Service.<br>
-            Recipient: {WebUtility.HtmlEncode(_options.ToEmail)}
-        </div>
-    </div>
-</body>
-</html>";
-
-        await SendEmailAsync(subject, htmlBody);
+        await SendEmailAsync(subject, $"Action: {data.Action}, Page: {data.PageUrl}");
     }
 
     public async Task SendEmailAsync(string subject, string bodyHtml)
@@ -403,80 +263,165 @@ public class EmailService : IEmailService
         string senderEmail = (_options.SenderEmail ?? "").Trim();
         string senderPassword = (_options.SenderPassword ?? "").Replace(" ", "").Trim();
         string toEmail = (_options.ToEmail ?? "").Trim();
+        string apiKey = (_options.ApiKey ?? "").Trim();
+        string provider = (_options.Provider ?? "").Trim().ToLowerInvariant();
 
-        if (string.IsNullOrWhiteSpace(senderEmail) || string.IsNullOrWhiteSpace(senderPassword))
+        if (string.IsNullOrWhiteSpace(senderEmail))
         {
-            _logger.LogWarning("[Telemetry] Email credentials (SenderEmail / SenderPassword) not configured in appsettings.json or Environment Variables. Telemetry email skipped.");
+            _logger.LogWarning("[Telemetry] SenderEmail not configured. Skipping email dispatch.");
             return;
         }
 
-        var message = new MimeMessage();
-        message.From.Add(new MailboxAddress(_options.SenderName, senderEmail));
-
-        var recipientAddresses = toEmail.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
-        foreach (var addr in recipientAddresses)
+        // 1. If Brevo / Resend / SendGrid API key is provided, send via HTTPS API (Works 100% on Render over Port 443!)
+        if (!string.IsNullOrWhiteSpace(apiKey) || provider == "brevo" || provider == "resend" || provider == "sendgrid")
         {
-            if (!string.IsNullOrWhiteSpace(addr))
-            {
-                message.To.Add(new MailboxAddress("", addr.Trim()));
-            }
+            bool apiSuccess = await SendViaHttpsApiAsync(provider, apiKey, senderEmail, toEmail, subject, bodyHtml);
+            if (apiSuccess) return;
         }
 
-        if (message.To.Count == 0)
+        // 2. Fallback to Direct SMTP (for local dev)
+        await SendViaSmtpAsync(senderEmail, senderPassword, toEmail, subject, bodyHtml);
+    }
+
+    private async Task<bool> SendViaHttpsApiAsync(string provider, string apiKey, string senderEmail, string toEmail, string subject, string bodyHtml)
+    {
+        try
         {
-            message.To.Add(new MailboxAddress("", senderEmail));
+            var recipientList = toEmail.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+                                      .Select(e => e.Trim()).Where(e => !string.IsNullOrEmpty(e)).ToList();
+            if (recipientList.Count == 0) recipientList.Add(senderEmail);
+
+            if (provider == "brevo" || (!string.IsNullOrEmpty(apiKey) && apiKey.StartsWith("xkeysib-")))
+            {
+                // Brevo (Sendinblue) HTTPS API
+                var requestObj = new
+                {
+                    sender = new { name = _options.SenderName, email = senderEmail },
+                    to = recipientList.Select(e => new { email = e }).ToArray(),
+                    subject = subject,
+                    htmlContent = bodyHtml
+                };
+
+                using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.brevo.com/v3/smtp/email");
+                req.Headers.Add("api-key", apiKey);
+                req.Content = new StringContent(JsonSerializer.Serialize(requestObj), Encoding.UTF8, "application/json");
+
+                var resp = await _httpClient.SendAsync(req);
+                if (resp.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("[Telemetry] Email successfully sent via Brevo HTTPS API to {ToEmail}", toEmail);
+                    return true;
+                }
+                string errStr = await resp.Content.ReadAsStringAsync();
+                _logger.LogWarning("[Telemetry] Brevo HTTPS API returned status {StatusCode}: {Error}", resp.StatusCode, errStr);
+            }
+            else if (provider == "resend" || (!string.IsNullOrEmpty(apiKey) && apiKey.StartsWith("re_")))
+            {
+                // Resend HTTPS API
+                var requestObj = new
+                {
+                    from = $"{_options.SenderName} <onboarding@resend.dev>",
+                    to = recipientList.ToArray(),
+                    subject = subject,
+                    html = bodyHtml
+                };
+
+                using var req = new HttpRequestMessage(HttpMethod.Post, "https://api.resend.com/emails");
+                req.Headers.Add("Authorization", $"Bearer {apiKey}");
+                req.Content = new StringContent(JsonSerializer.Serialize(requestObj), Encoding.UTF8, "application/json");
+
+                var resp = await _httpClient.SendAsync(req);
+                if (resp.IsSuccessStatusCode)
+                {
+                    _logger.LogInformation("[Telemetry] Email successfully sent via Resend HTTPS API to {ToEmail}", toEmail);
+                    return true;
+                }
+                string errStr = await resp.Content.ReadAsStringAsync();
+                _logger.LogWarning("[Telemetry] Resend HTTPS API returned status {StatusCode}: {Error}", resp.StatusCode, errStr);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[Telemetry] Failed to send email via HTTPS API. Falling back to SMTP...");
         }
 
-        message.Subject = subject;
+        return false;
+    }
 
-        var bodyBuilder = new BodyBuilder
+    private async Task SendViaSmtpAsync(string senderEmail, string senderPassword, string toEmail, string subject, string bodyHtml)
+    {
+        try
         {
-            HtmlBody = bodyHtml
-        };
-        message.Body = bodyBuilder.ToMessageBody();
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_options.SenderName, senderEmail));
 
-        // Try Port 465 (SSL) first, then Port 587 (STARTTLS)
-        int primaryPort = _options.SmtpPort > 0 ? _options.SmtpPort : 465;
-        int secondaryPort = (primaryPort == 465) ? 587 : 465;
-        int[] portsToTry = new[] { primaryPort, secondaryPort };
-
-        bool sentSuccessfully = false;
-        Exception? lastException = null;
-
-        foreach (int port in portsToTry)
-        {
-            try
+            var recipientAddresses = toEmail.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var addr in recipientAddresses)
             {
-                using var client = new SmtpClient();
-                // Crucial for Linux Docker containers on Render: bypass CA chain revocation failure
-                client.ServerCertificateValidationCallback = (s, c, h, e) => true;
-                client.Timeout = 12000; // 12s connection timeout for cloud hosting
-
-                SecureSocketOptions socketOption = (port == 465)
-                    ? SecureSocketOptions.SslOnConnect
-                    : SecureSocketOptions.StartTls;
-
-                _logger.LogInformation("[Telemetry] Connecting to SMTP {Host}:{Port} ({SocketOption}) on Render...", _options.SmtpHost, port, socketOption);
-
-                await client.ConnectAsync(_options.SmtpHost, port, socketOption);
-                await client.AuthenticateAsync(senderEmail, senderPassword);
-                await client.SendAsync(message);
-                await client.DisconnectAsync(true);
-
-                _logger.LogInformation("[Telemetry] Session summary email successfully sent to {ToEmail} via Port {Port}", toEmail, port);
-                sentSuccessfully = true;
-                break;
+                if (!string.IsNullOrWhiteSpace(addr))
+                {
+                    message.To.Add(new MailboxAddress("", addr.Trim()));
+                }
             }
-            catch (Exception ex)
+
+            if (message.To.Count == 0)
             {
-                lastException = ex;
-                _logger.LogWarning(ex, "[Telemetry] SMTP send failed on Port {Port}. Trying fallback port...", port);
+                message.To.Add(new MailboxAddress("", senderEmail));
+            }
+
+            message.Subject = subject;
+
+            var bodyBuilder = new BodyBuilder
+            {
+                HtmlBody = bodyHtml
+            };
+            message.Body = bodyBuilder.ToMessageBody();
+
+            int primaryPort = _options.SmtpPort > 0 ? _options.SmtpPort : 465;
+            int secondaryPort = (primaryPort == 465) ? 587 : 465;
+            int[] portsToTry = new[] { primaryPort, secondaryPort };
+
+            bool sentSuccessfully = false;
+            Exception? lastException = null;
+
+            foreach (int port in portsToTry)
+            {
+                try
+                {
+                    using var client = new SmtpClient();
+                    client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+                    client.Timeout = 12000;
+
+                    SecureSocketOptions socketOption = (port == 465)
+                        ? SecureSocketOptions.SslOnConnect
+                        : SecureSocketOptions.StartTls;
+
+                    _logger.LogInformation("[Telemetry] Connecting to SMTP {Host}:{Port} ({SocketOption})...", _options.SmtpHost, port, socketOption);
+
+                    await client.ConnectAsync(_options.SmtpHost, port, socketOption);
+                    await client.AuthenticateAsync(senderEmail, senderPassword);
+                    await client.SendAsync(message);
+                    await client.DisconnectAsync(true);
+
+                    _logger.LogInformation("[Telemetry] Session summary email successfully sent to {ToEmail} via Port {Port}", toEmail, port);
+                    sentSuccessfully = true;
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    lastException = ex;
+                    _logger.LogWarning(ex, "[Telemetry] SMTP send failed on Port {Port}.", port);
+                }
+            }
+
+            if (!sentSuccessfully && lastException != null)
+            {
+                _logger.LogError(lastException, "[Telemetry] Failed to send telemetry email to {ToEmail} on all SMTP ports.", toEmail);
             }
         }
-
-        if (!sentSuccessfully && lastException != null)
+        catch (Exception ex)
         {
-            _logger.LogError(lastException, "[Telemetry] Failed to send telemetry email to {ToEmail} on all ports on Render.", toEmail);
+            _logger.LogError(ex, "[Telemetry] Unexpected SMTP exception.");
         }
     }
 
@@ -487,21 +432,5 @@ public class EmailService : IEmailService
         if (ts.TotalMinutes < 1) return $"{ts.Seconds} sec";
         if (ts.TotalHours < 1) return $"{ts.Minutes}m {ts.Seconds}s";
         return $"{(int)ts.TotalHours}h {ts.Minutes}m {ts.Seconds}s";
-    }
-
-    private static string GetPageName(string url)
-    {
-        if (string.IsNullOrEmpty(url)) return "Index";
-        try
-        {
-            var uri = new Uri(url, UriKind.RelativeOrAbsolute);
-            string path = uri.IsAbsoluteUri ? uri.AbsolutePath : url;
-            if (path == "/" || string.IsNullOrWhiteSpace(path)) return "Index / Countdown";
-            return path.TrimStart('/');
-        }
-        catch
-        {
-            return url;
-        }
     }
 }
